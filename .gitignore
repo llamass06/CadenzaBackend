@@ -1,0 +1,28 @@
+Entornos virtuales
+
+venv/
+env/
+.env
+
+Archivos compilados de Python
+
+pycache/
+*.pyc
+
+Base de datos local
+
+cadenza.db
+*.sqlite3
+
+Carpetas de audios temporales y procesados
+
+uploads/
+separated/
+*.mp3
+*.wav
+*.flac
+
+Archivos de sistema operativo
+
+.DS_Store
+Thumbs.db
