@@ -25,6 +25,15 @@ Aunque FastAPI lo hace automatico, lo importo por si necesito cambiar cabeceras 
 """
 from app.config import OUTPUT_DIR
 from app.routers import tracks
+from app.routers import auth # <-- NUEVA IMPORTACIÓN: Traemos las rutas de seguridad
+
+# --- NUEVO: CREACIÓN DE TABLAS DE BBDD ---
+from app.database import models
+from app.database.database import engine
+
+# Esta instrucción lee los modelos y CREA las tablas físicas en cadenza.db si no existen.
+models.Base.metadata.create_all(bind=engine)
+# ----------------------------------------
 
 # CONFIGURACION 
 """
@@ -48,8 +57,11 @@ app = FastAPI(
     --------------
     Prevenir fallas humanas, que solo puedan subir archivos que FFMPEG y Demucs admitan (osea que solo suban archivos de audio).
     
+    -Version 1.2.0
+    --------------
+    Implementación de base de datos (SQLite), registro de usuarios y autenticación mediante JWT.
     """,
-    version="1.1.0"
+    version="1.2.0"
 )
 
 # IMPORTANTE (web)
@@ -60,9 +72,9 @@ Esto permite que la app descargue los audios resultantes.
 """
 
 # Incluir las rutas (Endpoints)
-# Si tuviese mas modulos tipo usuario etc, se ponen aqui
-# El prefix="/api" hace que la ruta final sea /api/separar
-app.include_router(tracks.router, prefix="/api/v1")
+# Agrupamos las rutas por "tags" para que en Swagger (/docs) se vea más organizado
+app.include_router(auth.router, prefix="/api/auth", tags=["Usuarios y Seguridad"])
+app.include_router(tracks.router, prefix="/api/v1", tags=["IA y Pistas"])
 
 @app.get("/")
 async def home():

@@ -22,7 +22,7 @@ def ejecutar_demucs(file_path):
         "--two-stems", "piano",   # Solo saco Piano y Acompañamiento (ahorra espacio)
         "--mp3",                  # Salida en MP3
         "--mp3-bitrate", "320",   # Calidad maxima
-        "--shifts", "2",          # 2 pasadas para limpiar ruido (tarda un poco mas pero suena mejor)
+        "--shifts", "0",          # 2 pasadas para limpiar ruido (tarda un poco mas pero suena mejor), para pruebas lo pongo en 0 q sino tarda la vida
         "--overlap", "0.25",      # Para que no se noten cortes en el audio
         "--segment", "7",       # Segmento seguro para que no falle la memoria (MAX => 7.8 pero solo admite enteros)
         "--clip-mode", "rescale", # Para evitar que el audio distorsione
