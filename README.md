@@ -29,18 +29,18 @@ Actualmente, el backend es plenamente funcional en cuanto al procesamiento de au
 
 ## 🛠️ Stack Tecnológico
 
-Lenguaje: Python 3.11.9
+-Lenguaje: Python 3.11.9
 
-Framework Web: FastAPI / Uvicorn
+-Framework Web: FastAPI / Uvicorn
 
-Motor de IA (Source Separation): Demucs (Facebook Research)
+-Motor de IA (Source Separation): Demucs (Facebook Research)
 
-Análisis de Señal: Librosa & NumPy
+-Análisis de Señal: Librosa & NumPy
 
-Manipulación de Audio: FFmpeg
-Base de Datos: SQLite + SQLAlchemy
+-Manipulación de Audio: FFmpeg
+-Base de Datos: SQLite + SQLAlchemy
 
-Seguridad: Bcrypt + Python-JOSE
+-Seguridad: Bcrypt + Python-JOSE
 
 ## ⚙️ Instalación y Configuración Local
 
