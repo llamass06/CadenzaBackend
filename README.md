@@ -93,14 +93,14 @@ Body: multipart/form-data con la clave file.
 
 Respuesta Exitosa (JSON):
 
-{
-    "status": "success",
-    "song_name": "nombre_cancion",
-    "piano_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3)",
-    "backing_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3)",
-    "bpm": 120.5,
-    "duration": 185.2
-}
+    {
+        "status": "success",
+        "song_name": "nombre_cancion",
+        "piano_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3)",
+        "backing_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3)",
+        "bpm": 120.5,
+        "duration": 185.2
+    }
 
 
 ## 📁 Estructura del Proyecto
