@@ -57,22 +57,22 @@ cd cadenza-backend
 Crear y activar el entorno virtual:
 
 # En Windows
-python -m venv venv
-.\venv\Scripts\Activate
+    python -m venv venv
+    .\venv\Scripts\Activate
 
 
 Instalar dependencias:
 
-pip install --upgrade pip
-pip install fastapi uvicorn python-multipart librosa
-pip install "numpy<2"
+    pip install --upgrade pip
+    pip install fastapi uvicorn python-multipart librosa
+    pip install "numpy<2"
 # Instalación de Demucs desde la fuente oficial
-pip install -U git+[https://github.com/facebookresearch/demucs#egg=demucs](https://github.com/facebookresearch/demucs#egg=demucs)
+    pip install -U git+[https://github.com/facebookresearch/demucs#egg=demucs](https://github.com/facebookresearch/demucs#egg=demucs)
 
 
 Arrancar el servidor de desarrollo:
 
-uvicorn app.main:app --reload
+    uvicorn app.main:app --reload
 
 
 El servidor estará escuchando en http://127.0.0.1:8000.
