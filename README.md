@@ -81,11 +81,11 @@ El servidor estará escuchando en http://127.0.0.1:8000.
 
 Puedes probar la API directamente usando Swagger UI navegando a http://127.0.0.1:8000/docs.
 
-GET /
+# GET /
 
 Descripción: Health check para comprobar que el servidor está online.
 
-POST /api/v1/separar
+# POST /api/v1/separar
 
 Descripción: Recibe un archivo de audio, ejecuta la red neuronal para separarlo y devuelve las URLs de descarga y los metadatos musicales.
 
