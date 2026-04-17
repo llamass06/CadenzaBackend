@@ -23,6 +23,9 @@ from fastapi.responses import JSONResponse
 Para personalizar las respuestas JSON.
 Aunque FastAPI lo hace automatico, lo importo por si necesito cambiar cabeceras o estados mas adelante.
 """
+
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.config import OUTPUT_DIR
 from app.routers import tracks
 from app.routers import auth # <-- NUEVA IMPORTACIÓN: Traemos las rutas de seguridad
@@ -31,17 +34,6 @@ from app.routers import auth # <-- NUEVA IMPORTACIÓN: Traemos las rutas de segu
 from app.database import models
 from app.database.database import engine
 
-# Esta instrucción lee los modelos y CREA las tablas físicas en cadenza.db si no existen.
-models.Base.metadata.create_all(bind=engine)
-# ----------------------------------------
-
-# CONFIGURACION 
-"""
-Convenio de cambio de versiones:
-    -1.0.X => Cuando se arregla un bug pequeño.
-    -1.X.0 => Cuando se añade una nueva funcionalidad, pero el resto sigue igual.
-    -X.0.0 => Cuando el cambio hace que lo demas deje de funcionalidad (bastante radical btw).
-"""
 app = FastAPI(
     title = "Cadenza Backend",
     description="""
@@ -63,6 +55,34 @@ app = FastAPI(
     """,
     version="1.2.0"
 )
+
+# <-- NUEVO: Configurar CORS
+# Le decimos a FastAPI que permita peticiones desde tu frontend
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"], # Permite cualquier cabecera (como el Authorization con el JWT)
+)
+
+# Esta instrucción lee los modelos y CREA las tablas físicas en cadenza.db si no existen.
+models.Base.metadata.create_all(bind=engine)
+# ----------------------------------------
+
+# CONFIGURACION 
+"""
+Convenio de cambio de versiones:
+    -1.0.X => Cuando se arregla un bug pequeño.
+    -1.X.0 => Cuando se añade una nueva funcionalidad, pero el resto sigue igual.
+    -X.0.0 => Cuando el cambio hace que lo demas deje de funcionalidad (bastante radical btw).
+"""
+
 
 # IMPORTANTE (web)
 app.mount("/files", StaticFiles(directory=OUTPUT_DIR), name="files")
