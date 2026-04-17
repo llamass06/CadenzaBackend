@@ -16,12 +16,15 @@ Actualmente, el backend es plenamente funcional en cuanto al procesamiento de au
 
 ✅ API RESTful: Desarrollada con FastAPI para la comunicación fluida con la futura app móvil.
 
-✅ Base de Datos (BBDD): Migración del guardado temporal de archivos a un sistema persistente (SQLite/SQLAlchemy) para registrar el historial de cada usuario y relacionarlo con sus audios.
+✅ Base de Datos (BBDD): Sistema persistente con SQLite y SQLAlchemy para registrar usuarios de forma segura.
 
-✅ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT (JSON Web Tokens).
+✅ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT y contraseñas encriptadas con Bcrypt.
+
+✅ API RESTful & CORS: Desarrollada con FastAPI para la comunicación fluida con la web app (React). Middleware de CORS configurado para permitir peticiones desde dominios externos y redes locales.
 
 ## 🚧 En Desarrollo (WIP):
 ⏳ Interfaz de luces en caso de que el dispositivo cliente las tenga.
+
 ⏳ Creador automático de partituras en base a la obra recibida.
 
 ## 🛠️ Stack Tecnológico
@@ -35,6 +38,9 @@ Motor de IA (Source Separation): Demucs (Facebook Research)
 Análisis de Señal: Librosa & NumPy
 
 Manipulación de Audio: FFmpeg
+Base de Datos: SQLite + SQLAlchemy
+
+Seguridad: Bcrypt + Python-JOSE
 
 ## ⚙️ Instalación y Configuración Local
 
@@ -50,9 +56,8 @@ Git.
 
 Clonar el repositorio:
 
-git clone [https://github.com/TU-USUARIO/cadenza-backend.git](https://github.com/TU-USUARIO/cadenza-backend.git)
-cd cadenza-backend
-
+git clone https://github.com/llamass06/CadenzaBackend.git
+cd CadenzaBackend
 
 Crear y activar el entorno virtual:
 
@@ -61,11 +66,10 @@ Crear y activar el entorno virtual:
     .\venv\Scripts\Activate
 
 
-Instalar dependencias:
+Instalar dependencias (usando el archivo unificado):
 
-    pip install --upgrade pip
-    pip install fastapi uvicorn python-multipart librosa
-    pip install "numpy<2"
+    pip install -r requirements.txt
+    
 # Instalación de Demucs desde la fuente oficial
     pip install -U git+[https://github.com/facebookresearch/demucs#egg=demucs](https://github.com/facebookresearch/demucs#egg=demucs)
 
@@ -84,6 +88,18 @@ Puedes probar la API directamente usando Swagger UI navegando a http://127.0.0.1
 # GET /
 
 Descripción: Health check para comprobar que el servidor está online.
+
+# POST /api/auth/token
+
+Descripción: Endpoint OAuth2 para el inicio de sesión. Recibe las credenciales y devuelve un token JWT.
+
+Body (x-www-form-urlencoded): username (correo) y password.
+Respuesta Exitosa (JSON):
+
+    {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer"
+    }
 
 # POST /api/v1/separar
 
@@ -105,16 +121,19 @@ Respuesta Exitosa (JSON):
 
 ## 📁 Estructura del Proyecto
 
-    MusicAppBackend/
+    CadenzaBackend/
     ├── uploads/                    # Recepción de archivos temporales (ignorados en git)
     ├── separated/                  # Pistas procesadas por la IA (ignorados en git)
     ├── app/                        # Código fuente del servidor
     │   ├── config.py               # Variables globales
-    │   ├── main.py                 # Core de FastAPI
-    │   ├── routers/                # Endpoints (tracks.py)
-    │   └── services/               # Lógica de IA y análisis (ai_separation, audio_analysis)
+    │   ├── main.py                 # Core de FastAPI y configuración CORS
+    │   ├── auth.py                 # Lógica de seguridad y JWT
+    │   ├── database/               # Modelos y conexión a BBDD SQLAlchemy
+    │   ├── routers/                # Endpoints (tracks.py, auth.py)
+    │   └── services/               # Lógica de IA y análisis
+    ├── cadenza.db                  # Base de datos local (ignorado en git)
+    ├── requirements.txt            # Dependencias del proyecto
     ├── .gitignore                  
-    └── README.md                   
-
+    └── README.md
 
 Desarrollado por Álvaro Llamas Martín para el Proyecto Integrado de 2º DAM.
