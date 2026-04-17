@@ -105,16 +105,16 @@ Respuesta Exitosa (JSON):
 
 📁 Estructura del Proyecto
 
-MusicAppBackend/
-├── uploads/                    # Recepción de archivos temporales (ignorados en git)
-├── separated/                  # Pistas procesadas por la IA (ignorados en git)
-├── app/                        # Código fuente del servidor
-│   ├── config.py               # Variables globales
-│   ├── main.py                 # Core de FastAPI
-│   ├── routers/                # Endpoints (tracks.py)
-│   └── services/               # Lógica de IA y análisis (ai_separation, audio_analysis)
-├── .gitignore                  
-└── README.md                   
+    MusicAppBackend/
+    ├── uploads/                    # Recepción de archivos temporales (ignorados en git)
+    ├── separated/                  # Pistas procesadas por la IA (ignorados en git)
+    ├── app/                        # Código fuente del servidor
+    │   ├── config.py               # Variables globales
+    │   ├── main.py                 # Core de FastAPI
+    │   ├── routers/                # Endpoints (tracks.py)
+    │   └── services/               # Lógica de IA y análisis (ai_separation, audio_analysis)
+    ├── .gitignore                  
+    └── README.md                   
 
 
 Desarrollado por Álvaro Llamas Martín para el Proyecto Integrado de 2º DAM.
