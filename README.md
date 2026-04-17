@@ -16,11 +16,13 @@ Características Implementadas:
 
 ✅ API RESTful: Desarrollada con FastAPI para la comunicación fluida con la futura app móvil.
 
+✅ Base de Datos (BBDD): Migración del guardado temporal de archivos a un sistema persistente (SQLite/SQLAlchemy) para registrar el historial de cada usuario y relacionarlo con sus audios.
+
+✅ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT (JSON Web Tokens).
+
 🚧 En Desarrollo (WIP):
-
-⏳ Base de Datos (BBDD): Migración del guardado temporal de archivos a un sistema persistente (SQLite/SQLAlchemy) para registrar el historial de cada usuario y relacionarlo con sus audios.
-
-⏳ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT (JSON Web Tokens).
+⏳ Interfaz de luces en caso de que el dispositivo cliente las tenga.
+⏳ Creador automático de partituras en base a la obra recibida.
 
 🛠️ Stack Tecnológico
 
