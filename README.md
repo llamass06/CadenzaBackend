@@ -1,12 +1,12 @@
-Cadenza Backend - Deconstrucción Orquestal para Pianistas 🎹
+## Cadenza Backend - Deconstrucción Orquestal para Pianistas 🎹
 
 Backend del proyecto integrado Cadenza, una herramienta diseñada para estudiantes de piano que permite aislar o eliminar la pista de piano de cualquier obra musical u orquestal utilizando Inteligencia Artificial.
 
-🚀 Estado del Proyecto
+## 🚀 Estado del Proyecto
 
 Actualmente, el backend es plenamente funcional en cuanto al procesamiento de audio y análisis musical.
 
-Características Implementadas:
+## Características Implementadas:
 
 ✅ Separación de Pistas con IA: Integración con el modelo Demucs (htdemucs_6s) para aislar el piano del resto del acompañamiento.
 
@@ -20,11 +20,11 @@ Características Implementadas:
 
 ✅ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT (JSON Web Tokens).
 
-🚧 En Desarrollo (WIP):
+## 🚧 En Desarrollo (WIP):
 ⏳ Interfaz de luces en caso de que el dispositivo cliente las tenga.
 ⏳ Creador automático de partituras en base a la obra recibida.
 
-🛠️ Stack Tecnológico
+## 🛠️ Stack Tecnológico
 
 Lenguaje: Python 3.11.9
 
@@ -36,7 +36,7 @@ Análisis de Señal: Librosa & NumPy
 
 Manipulación de Audio: FFmpeg
 
-⚙️ Instalación y Configuración Local
+## ⚙️ Instalación y Configuración Local
 
 Prerrequisitos
 
@@ -46,7 +46,7 @@ FFmpeg instalado y configurado en las variables de entorno (PATH) del sistema.
 
 Git.
 
-Pasos para desplegar
+## Pasos para desplegar
 
 Clonar el repositorio:
 
@@ -77,7 +77,7 @@ uvicorn app.main:app --reload
 
 El servidor estará escuchando en http://127.0.0.1:8000.
 
-📡 Endpoints Principales (API v1)
+## 📡 Endpoints Principales (API v1)
 
 Puedes probar la API directamente usando Swagger UI navegando a http://127.0.0.1:8000/docs.
 
@@ -103,7 +103,7 @@ Respuesta Exitosa (JSON):
 }
 
 
-📁 Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
     MusicAppBackend/
     ├── uploads/                    # Recepción de archivos temporales (ignorados en git)
