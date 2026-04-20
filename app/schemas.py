@@ -21,7 +21,8 @@ class Song(SongBase):
     
     # Config para que Pydantic sepa leer los modelos de SQLAlchemy (BBDD)
     class Config:
-        orm_mode = True
+        #orm_mode = True
+        from_attributes = True
 
 # --- 2. SCHEMAS PARA USUARIOS ---
 

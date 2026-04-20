@@ -34,6 +34,9 @@ from app.routers import auth # <-- NUEVA IMPORTACIÓN: Traemos las rutas de segu
 from app.database import models
 from app.database.database import engine
 
+from fastapi import FastAPI
+from app.routers import contexto
+
 app = FastAPI(
     title = "Cadenza Backend",
     description="""
@@ -95,6 +98,7 @@ Esto permite que la app descargue los audios resultantes.
 # Agrupamos las rutas por "tags" para que en Swagger (/docs) se vea más organizado
 app.include_router(auth.router, prefix="/api/auth", tags=["Usuarios y Seguridad"])
 app.include_router(tracks.router, prefix="/api/v1", tags=["IA y Pistas"])
+app.include_router(contexto.router)
 
 @app.get("/")
 async def home():
