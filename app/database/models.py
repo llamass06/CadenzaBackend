@@ -27,6 +27,8 @@ class Song(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     
+    artist = Column(String)
+    
     # Rutas a los archivos físicos en el servidor
     path_piano = Column(String)
     path_backing = Column(String)
