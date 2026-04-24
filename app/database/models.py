@@ -1,11 +1,6 @@
-"""
-REPASAR(new)
-"""
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
-
-# Importamos Base desde el archivo hermano 'database.py' (usamos punto . para indicar "en esta carpeta")
 from .database import Base
 
 class User(Base):
@@ -14,7 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     username = Column(String)
-    hashed_password = Column(String) # Guardamos el hash, no la pass real
+    hashed_password = Column(String) # Clave hasheada
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relación: Un usuario tiene muchas canciones
@@ -28,6 +23,8 @@ class Song(Base):
     title = Column(String, index=True)
     
     artist = Column(String)
+    
+    contexto = Column(String, nullable=True)
     
     # Rutas a los archivos físicos en el servidor
     path_piano = Column(String)

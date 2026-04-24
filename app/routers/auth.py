@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from datetime import timedelta
 
-# Importamos nuestros modulos (ajustados a tu estructura de carpetas)
+# Modulos de la bbdd
 from app.database import models          
 from app.database.database import get_db 
 from app import schemas, auth            
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -59,7 +59,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     # C) Generar Token
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={
+                "sub": user.email,
+                "username": user.username
+            }, expires_delta=access_token_expires
     )
     
     return {"access_token": access_token, "token_type": "bearer"}

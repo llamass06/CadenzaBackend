@@ -8,6 +8,7 @@ class SongBase(BaseModel):
     title: str
     bpm: float
     duration: float
+    contexto: Optional[str] = None
 
 # Datos necesarios para crear una cancion (lo usamos internamente al procesar)
 class SongCreate(SongBase):
@@ -31,11 +32,11 @@ class UserBase(BaseModel):
     email: str
     username: str
 
-# Datos para registrarse (Input) -> ¡AQUI SI PEDIMOS PASSWORD!
+# Datos para registrarse (Input) 
 class UserCreate(UserBase):
     password: str 
 
-# Datos para devolver info del usuario (Output) -> ¡SIN PASSWORD!
+# Datos para devolver info del usuario (Output) 
 class User(UserBase):
     id: int
     # is_active: bool = True # Puedes descomentarlo si añades este campo en models.py

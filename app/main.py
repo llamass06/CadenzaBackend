@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import OUTPUT_DIR
 from app.routers import tracks
-from app.routers import auth # <-- NUEVA IMPORTACIÓN: Traemos las rutas de seguridad
+from app.routers import auth # Rutas de seguridad
 from app.routers import contexto
 from app.routers import audio
 

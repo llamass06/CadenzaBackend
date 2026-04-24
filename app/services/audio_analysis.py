@@ -56,7 +56,7 @@ def analizar_track(file_path: str) -> dict:
         return {
             "bpm": bpm_val,
             "duration": duration_val,
-            "key": "Nose" # TODO() Se podria hacer un modulo para que detecte la TONALIDAD
+            "key": "TODO" # TODO() Se podria hacer un modulo para que detecte la TONALIDAD
         }
         
     except Exception as e:

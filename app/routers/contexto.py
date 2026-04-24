@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Importamos la NUEVA librería
 from google import genai
 
 load_dotenv()
@@ -35,7 +34,7 @@ async def generar_contexto_obra(obra: ObraRequest):
         1. DOMINIO PERMITIDO: Solo puedes analizar música académica (desde el Renacimiento hasta la Contemporánea) y Bandas Sonoras Originales (cine y videojuegos) de corte orquestal, coral o instrumental acústico.
         2. ALERTA DE FALSOS POSITIVOS: Ten en cuenta que muchas bandas sonoras de videojuegos modernos utilizan títulos litúrgicos, en latín o de aspecto religioso. Identifícalas correctamente en su contexto audiovisual contemporáneo en lugar de asumir que son obras sacras antiguas.
         3. DOMINIO PROHIBIDO: Descarta absolutamente cualquier obra de música urbana, pop, rock, reguetón o electrónica de baile.
-        4. FORMATO DE ÉXITO: Si identificas la obra claramente dentro del dominio permitido, escribe un único párrafo (máximo 4 líneas) detallando su contexto histórico o narrativo, su compositor y un detalle técnico o de instrumentación.
+        4. FORMATO DE ÉXITO: Si identificas la obra claramente dentro del dominio permitido, escribe un único párrafo (mínimo 3 líneas, máximo 8 líneas) detallando su contexto histórico o narrativo, su compositor y un detalle técnico o de instrumentación.
         5. FORMATO DE ERROR (CERO INVENTIVA): Si el nombre es genérico (ej. "pista_1", "audio") o pertenece al dominio prohibido, no intentes adivinar. Responde EXACTAMENTE con esta frase:
         "No he podido identificar la obra con precisión dentro del ámbito académico o de bandas sonoras. Por favor, edita el título y el autor en el panel para un análisis correcto."
 

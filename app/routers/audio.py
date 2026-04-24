@@ -15,7 +15,6 @@ async def upload_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="El archivo no es un formato de audio válido.")
 
     # 2. Generar la ruta donde guardaremos el archivo físicamente
-    # (En un proyecto más grande, aquí le cambiaríamos el nombre para que no haya duplicados)
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     # 3. Guardar el archivo en el disco duro de forma segura
