@@ -1,5 +1,8 @@
+import secrets
+import resend
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse
 from datetime import timedelta
 
 # Modulos de la bbdd
@@ -11,41 +14,126 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 # 1. REGISTRO DE USUARIO
-@router.post("/register", response_model=schemas.User)
+@router.post("/register")
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Registra un nuevo usuario:
     1. Verifica que el email no exista.
     2. Encripta la contraseña.
-    3. Guarda en BBDD.
+    3. Genera token de verificación.
+    4. Guarda en BBDD y envía el correo con Resend.
     """
     # A) Comprobar si existe
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Este email ya está registrado")
     
-    # B) Encriptar password
+    # B) Encriptar password y crear token
     hashed_password = auth.get_password_hash(user.password)
+    token_verificacion = secrets.token_urlsafe(32)
     
     # C) Crear objeto y guardar
     new_user = models.User(
         email=user.email,
         username=user.username,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        is_verified=False,
+        verification_token=token_verificacion
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
-    return new_user
+    # D) ENVÍO DE CORREO REAL CON RESEND
+    # ¡Asegúrate de poner tu API Key de Resend aquí!
+    resend.api_key = "re_JbZFdEXY_H5PNmQedkjyn6mDNtmLcy2DL" 
+    
+    link_verificacion = f"http://localhost:8000/api/auth/verify?token={token_verificacion}"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+        <h2 style="color: #00f2ff; background-color: #0a0f1c; padding: 10px; border-radius: 8px;">CADENZA</h2>
+        <h3>¡Bienvenido a Cadenza, {user.username}!</h3>
+        <p>Para empezar a usar el Estudio Virtual, necesitamos verificar tu correo.</p>
+        <a href="{link_verificacion}" style="display: inline-block; padding: 10px 20px; background-color: #00f2ff; color: #000; text-decoration: none; font-weight: bold; border-radius: 5px; margin-top: 15px;">
+            Activar mi cuenta
+        </a>
+        <p style="margin-top: 30px; font-size: 12px; color: #666;">Si el botón no funciona, copia y pega este enlace:<br>{link_verificacion}</p>
+    </div>
+    """
+    
+    try:
+        resend.Emails.send({
+            "from": "onboarding@resend.dev",
+            "to": user.email,
+            "subject": "Verifica tu cuenta en Cadenza 🎹",
+            "html": html_content
+        })
+    except Exception as e:
+        print(f"Error al enviar el correo: {e}")
+        
+    return {"message": "Usuario creado. Por favor, revisa tu correo para verificar la cuenta."}
 
-# 2. LOGIN (CONSEGUIR TOKEN)
+# 2. ENDPOINT PARA VERIFICAR EL CORREO (PANTALLA HTML)
+@router.get("/verify", response_class=HTMLResponse)
+def verify_email(token: str, db: Session = Depends(get_db)):
+    """
+    Recibe el token por URL, busca al usuario y lo marca como verificado.
+    Devuelve una página web elegante en lugar de un JSON.
+    """
+    user = db.query(models.User).filter(models.User.verification_token == token).first()
+    
+    # 1. HEMOS BORRADO EL {boton} DE LA PLANTILLA HTML
+    html_template = """
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verificación Cadenza</title>
+        <style>
+            body {{ background-color: #0a0f1c; color: #ffffff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }}
+            .card {{ background-color: #12182b; padding: 40px; border-radius: 16px; border: 1px solid #1f2937; text-align: center; max-width: 400px; box-shadow: 0 4px 20px rgba(0,242,255,0.1); }}
+            h1 {{ color: {color}; margin-bottom: 10px; font-style: italic; text-transform: uppercase; letter-spacing: 2px;}}
+            p {{ color: #94a3b8; line-height: 1.5; margin-bottom: 25px;}}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>{titulo}</h1>
+            <p>{mensaje}</p>
+        </div>
+    </body>
+    </html>
+    """
+
+    if not user:
+        # 2. TAMBIÉN LO QUITAMOS DE AQUÍ
+        return html_template.format(
+            color="#ef4444", 
+            titulo="Enlace Inválido", 
+            mensaje="El enlace de verificación ha caducado o ya ha sido utilizado."
+        )
+    
+    user.is_verified = True
+    user.verification_token = None
+    db.commit()
+    
+    # 3. Y AQUÍ YA SE DEVUELVE PERFECTAMENTE SIN BOTÓN
+    return html_template.format(
+        color="#00f2ff", 
+        titulo="¡Cuenta Activada!", 
+        mensaje=f"Genial {user.username}, tu correo ha sido verificado correctamente. Ya puedes cerrar esta pestaña e iniciar sesión en Cadenza.",
+    )
+
+
+# 3. LOGIN (CONSEGUIR TOKEN)
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
     Valida usuario/contraseña y devuelve el Token de acceso.
     """
-    # A) Buscar usuario por email (form_data usa el campo 'username' para recibirlo)
+    # A) Buscar usuario por email
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     
     # B) Verificar password
@@ -55,8 +143,15 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             detail="Email o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        
+    # C) NUEVO: Verificar si ha validado su correo
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta aún no está verificada. Revisa tu bandeja de entrada."
+        )
     
-    # C) Generar Token
+    # D) Generar Token
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={

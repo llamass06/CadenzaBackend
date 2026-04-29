@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -17,7 +17,7 @@ class User(Base):
     songs = relationship("Song", back_populates="owner")
     
     # Verificacion del correo del usuario
-    is_verified = Column(bool, default=False)
+    is_verified = Column(Boolean, default=False)
     verification_token = Column(String, nullable=True)
 
 class Song(Base):
