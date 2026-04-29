@@ -15,6 +15,10 @@ class User(Base):
     # Relación: Un usuario tiene muchas canciones
     # 'Song' es el nombre de la clase, back_populates conecta con el campo 'owner' en Song
     songs = relationship("Song", back_populates="owner")
+    
+    # Verificacion del correo del usuario
+    is_verified = Column(bool, default=False)
+    verification_token = Column(String, nullable=True)
 
 class Song(Base):
     __tablename__ = "songs"
