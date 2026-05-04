@@ -1,5 +1,7 @@
 import secrets
-import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import HTMLResponse
@@ -44,9 +46,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    # D) ENVÍO DE CORREO REAL CON RESEND
-    # ¡Asegúrate de poner tu API Key de Resend aquí!
-    resend.api_key = "re_JbZFdEXY_H5PNmQedkjyn6mDNtmLcy2DL" 
+    # D) ENVÍO DE CORREO REAL CON SMTP
+    # ¡Asegúrate de poner tu correo y tu contraseña de aplicación aquí!
+    # IMPORTANTE: Si usas Gmail, debes generar una "Contraseña de aplicación" desde los ajustes de seguridad de tu cuenta.
+    sender_email = "cadenzaappp@gmail.com" # TODO: PON TU CORREO
+    sender_password = "svyw ptkf gqpn uhru" # TODO: PON TU CONTRASEÑA
+    smtp_server = "smtp.gmail.com"  # Cambiar si usas otro proveedor (ej. smtp-mail.outlook.com)
+    smtp_port = 465  # 465 para SSL o 587 para TLS dependiendo del servidor
     
     link_verificacion = f"http://localhost:8000/api/auth/verify?token={token_verificacion}"
     
@@ -62,13 +68,17 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     </div>
     """
     
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Verifica tu cuenta en Cadenza 🎹"
+    msg["From"] = sender_email
+    msg["To"] = user.email
+    msg.attach(MIMEText(html_content, "html"))
+    
     try:
-        resend.Emails.send({
-            "from": "onboarding@resend.dev",
-            "to": user.email,
-            "subject": "Verifica tu cuenta en Cadenza 🎹",
-            "html": html_content
-        })
+        # Usamos SMTP_SSL para el puerto 465 (Gmail por defecto)
+        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, user.email, msg.as_string())
     except Exception as e:
         print(f"Error al enviar el correo: {e}")
         
