@@ -1,3 +1,11 @@
+"""
+Módulo de Autenticación y Gestión de Usuarios.
+
+Este módulo define los endpoints de la API encargados del registro de usuarios,
+la verificación de correos electrónicos mediante SMTP y la generación de 
+tokens de acceso (login) mediante OAuth2.
+"""
+
 import secrets
 import os
 import smtplib
@@ -20,11 +28,25 @@ router = APIRouter()
 @router.post("/register")
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
-    Registra un nuevo usuario:
-    1. Verifica que el email no exista.
-    2. Encripta la contraseña.
-    3. Genera token de verificación.
-    4. Guarda en BBDD y envía el correo con Resend.
+    Registra un nuevo usuario en el sistema.
+    
+    Flujo de ejecución:
+    1. Verifica que el correo electrónico no esté ya registrado.
+    2. Hashea (encripta) la contraseña introducida por el usuario.
+    3. Genera un token seguro y único para la verificación de correo electrónico.
+    4. Guarda el nuevo usuario en la base de datos (con estado "no verificado").
+    5. Envía un correo electrónico al usuario usando SMTP con un enlace para verificar su cuenta.
+    
+    Args:
+        user (schemas.UserCreate): Los datos del usuario (email, username, password) recibidos del cliente.
+        db (Session): Sesión de la base de datos inyectada como dependencia.
+        
+    Returns:
+        dict: Mensaje informativo sobre la creación exitosa del usuario y el envío del correo.
+        
+    Raises:
+        HTTPException: 
+            - 400 Si el correo electrónico ya se encuentra registrado.
     """
     # A) Comprobar si existe
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -91,12 +113,23 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @router.get("/verify", response_class=HTMLResponse)
 def verify_email(token: str, db: Session = Depends(get_db)):
     """
-    Recibe el token por URL, busca al usuario y lo marca como verificado.
-    Devuelve una página web elegante en lugar de un JSON.
+    Verifica la dirección de correo electrónico del usuario.
+    
+    Este endpoint se accede mediante el enlace enviado al correo electrónico
+    del usuario. Busca al usuario por el token de verificación en la URL,
+    y si lo encuentra y es válido, actualiza su estado a "verificado".
+    
+    Args:
+        token (str): El token único de verificación que fue enviado por correo.
+        db (Session): Sesión de la base de datos inyectada como dependencia.
+        
+    Returns:
+        HTMLResponse: Una página HTML elegante indicando el resultado de la verificación 
+        (éxito o token inválido/caducado).
     """
     user = db.query(models.User).filter(models.User.verification_token == token).first()
     
-    # 1. HEMOS BORRADO EL {boton} DE LA PLANTILLA HTML
+    # Plantilla HTML para la respuesta visual
     html_template = """
     <!DOCTYPE html>
     <html lang="es">
@@ -121,7 +154,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     """
 
     if not user:
-        # 2. TAMBIÉN LO QUITAMOS DE AQUÍ
         return html_template.format(
             color="#ef4444", 
             titulo="Enlace Inválido", 
@@ -132,7 +164,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user.verification_token = None
     db.commit()
     
-    # 3. Y AQUÍ YA SE DEVUELVE PERFECTAMENTE SIN BOTÓN
     return html_template.format(
         color="#00f2ff", 
         titulo="¡Cuenta Activada!", 
@@ -144,7 +175,24 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
-    Valida usuario/contraseña y devuelve el Token de acceso.
+    Endpoint de inicio de sesión para obtener el Token de Acceso JWT.
+    
+    Valida las credenciales proporcionadas por el usuario (email como username 
+    y contraseña) y comprueba que la cuenta esté verificada. Si es correcto, 
+    devuelve un token JWT con la información del usuario para la autorización
+    en futuros requests.
+    
+    Args:
+        form_data (OAuth2PasswordRequestForm): Formulario estándar de OAuth2 con las credenciales (username/email y password).
+        db (Session): Sesión de la base de datos inyectada como dependencia.
+        
+    Returns:
+        dict: Un diccionario con el token de acceso (JWT) y el tipo de token ("bearer").
+        
+    Raises:
+        HTTPException:
+            - 401 Si las credenciales (email o contraseña) son incorrectas.
+            - 403 Si la cuenta de usuario no ha sido verificada aún.
     """
     # A) Buscar usuario por email
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
@@ -157,7 +205,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # C) NUEVO: Verificar si ha validado su correo
+    # C) Verificar si ha validado su correo
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

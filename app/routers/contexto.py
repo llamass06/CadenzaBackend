@@ -1,3 +1,15 @@
+"""
+Módulo de generación de contexto musicológico mediante IA.
+
+Este módulo expone un endpoint que, dado el nombre de una obra musical,
+consulta a la API de Google Gemini para obtener un párrafo de contexto
+histórico, biográfico e instrumental sobre dicha obra.
+
+Solo se aceptan obras de música académica (Renacimiento → Contemporánea)
+y bandas sonoras originales de cine/videojuegos de corte orquestal o acústico.
+Cualquier otro género (pop, rock, reguetón, electrónica...) es rechazado.
+"""
+
 import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -12,20 +24,52 @@ router = APIRouter(
     tags=["Contexto IA"]
 )
 
+# Cargamos la API Key de Gemini desde las variables de entorno
 api_key = os.getenv("GEMINI_API_KEY")
 
 class ObraRequest(BaseModel):
+    """
+    Modelo de datos para la solicitud de contexto de una obra.
+    
+    Attributes:
+        nombre_obra (str): Nombre de la obra musical a analizar (puede incluir autor).
+                           Ejemplo: "Requiem de Mozart" o "One-Winged Angel de Nobuo Uematsu".
+    """
     nombre_obra: str
 
 @router.post("/")
 async def generar_contexto_obra(obra: ObraRequest):
+    """
+    Genera un párrafo de contexto musicológico para una obra dada usando Gemini.
+    
+    Este endpoint envía el nombre de la obra a la API de Google Gemini con un
+    prompt muy estricto que actúa como un musicólogo experto. El modelo tiene
+    instrucciones claras para:
+    - No inventar datos biográficos ni fechas.
+    - Cubrir únicamente música académica y bandas sonoras orquestales.
+    - Devolver un mensaje de error estandarizado si la obra no es identificable
+      o pertenece a un género no permitido (pop, rock, etc.).
+    
+    Args:
+        obra (ObraRequest): Objeto con el campo `nombre_obra` que identifica la pieza.
+        
+    Returns:
+        dict: Un diccionario con la clave `contexto` que contiene el párrafo generado
+              por la IA en texto plano.
+              
+    Raises:
+        HTTPException:
+            - 500 Si la API Key de Gemini no está configurada en el servidor.
+            - 500 Si ocurre cualquier otro error durante la comunicación con la API de Gemini.
+    """
     if not api_key:
         raise HTTPException(status_code=500, detail="La API Key no está configurada en el servidor.")
 
     try:
-        # Inicializamos el cliente con la nueva sintaxis
+        # Inicializamos el cliente con la API Key cargada desde el entorno
         client = genai.Client(api_key=api_key)
 
+        # Prompt diseñado para comportarse como un musicólogo con reglas estrictas de ámbito
         prompt = f"""
         Actúa como un musicólogo experto y profesor de conservatorio. Analiza la siguiente entrada: "{obra.nombre_obra}".
 
@@ -43,12 +87,12 @@ async def generar_contexto_obra(obra: ObraRequest):
         
         print(f"DEBUG: Enviando a Gemini -> {obra.nombre_obra}")
         
-        # Hacemos la petición usando el modelo que tienes disponible
+        # Petición al modelo con temperatura baja para respuestas más precisas y conservadoras
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
             config=genai.types.GenerateContentConfig(
-                temperature=0.4 
+                temperature=0.4  # Valores bajos = respuestas más fiables y menos creativas
             )
         )
         

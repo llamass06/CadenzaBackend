@@ -1,67 +1,62 @@
 """
-uvicorn app.main:app --reload
+Punto de entrada principal de la aplicación Cadenza Backend.
+
+Este módulo crea y configura la instancia de FastAPI (`app`) que sirve como
+núcleo de toda la API. Sus responsabilidades son:
+- Inicializar la aplicación con metadatos (título, descripción, versión).
+- Configurar el middleware CORS para permitir peticiones desde el frontend.
+- Crear las tablas de la base de datos SQLite al arrancar (si no existen).
+- Montar la carpeta de archivos estáticos para que los audios sean accesibles por URL.
+- Registrar todos los routers de la API con sus prefijos y etiquetas.
+
+Comando de arranque:
+    uvicorn app.main:app --reload
+
+Historial de versiones:
+    1.0.0 — Separación de audio con Demucs (piano y acompañamiento).
+    1.1.0 — Análisis de tempo (BPM) con Librosa para el metrónomo.
+    1.1.1 — Validación de formato de archivo en la subida.
+    1.2.0 — Base de datos SQLite, registro de usuarios y autenticación JWT.
 """
 
-# IMPORTS
-
+# FastAPI: framework principal de la API.
+# StaticFiles: expone una carpeta del servidor como ruta web pública.
+# JSONResponse: permite construir respuestas JSON personalizadas.
+# CORSMiddleware: gestiona los permisos de origen cruzado (Cross-Origin Resource Sharing).
 from fastapi import FastAPI
-"""
-FastAPI: La clase principal para arrancar la app.
-UploadFile y File: Tipos de datos para decirle a la API que va a recibir un archivo binario (el audio), no texto.
-HTTPException: Para lanzar errores controlados (como un 500) si falla la IA, en vez de que explote todo.
-"""
-
 from fastapi.staticfiles import StaticFiles
-"""
-Archivos Estaticos.
-Sirve para "hacer publica" la carpeta donde guardo los resultados.
-Sin esto, la app movil no tendria una URL para descargar o reproducir los audios.
-"""
-
 from fastapi.responses import JSONResponse
-"""
-Para personalizar las respuestas JSON.
-Aunque FastAPI lo hace automatico, lo importo por si necesito cambiar cabeceras o estados mas adelante.
-"""
-
 from fastapi.middleware.cors import CORSMiddleware
 
+# Configuración global de rutas y constantes del servidor
 from app.config import OUTPUT_DIR
-from app.routers import tracks
-from app.routers import auth # Rutas de seguridad
-from app.routers import contexto
-from app.routers import audio
 
-# --- NUEVO: CREACIÓN DE TABLAS DE BBDD ---
+# Routers de la API, cada uno agrupa un conjunto de endpoints relacionados
+from app.routers import tracks   # Endpoints de separación y gestión de obras
+from app.routers import auth     # Endpoints de registro, verificación y login
+from app.routers import contexto # Endpoint de generación de contexto musicológico con Gemini
+from app.routers import audio    # Endpoint de subida de audio temporal
+
+# Modelos ORM y motor de BBDD para la creación automática de tablas
 from app.database import models
 from app.database.database import engine
 
-from fastapi import FastAPI
-
+# --- INSTANCIA PRINCIPAL DE LA APLICACIÓN ---
 app = FastAPI(
-    title = "Cadenza Backend",
+    title="Cadenza Backend",
     description="""
-    -Version 1.0.0
-    --------------
-    Backend de mi proyecto integrado 'Cadenza'. Se le pasa una obra musical en formato .mp3, y mediante un modelo de IA, separa este audio para lograr otras dos salidas de audio. Una con el acompañamiento (violin, guitarra, tambores, trompetas etc) pero SIN el piano, y otra, menos importante, SOLO con el piano.
-    
-    -Version 1.1.0
-    --------------
-    Implementacion de la libreria Librosa, cuyo proposito es de implementar el modulo de deteccion de tempo de las obras analizadas, para proporcionarle al usuario un ritmo base para el metronomo, que mas adelante podra cambiar para ajustarse a sus necesidades.
-    
-    -Version 1.1.1
-    --------------
-    Prevenir fallas humanas, que solo puedan subir archivos que FFMPEG y Demucs admitan (osea que solo suban archivos de audio).
-    
-    -Version 1.2.0
-    --------------
-    Implementación de base de datos (SQLite), registro de usuarios y autenticación mediante JWT.
+    API REST del proyecto integrado 'Cadenza'.
+    Recibe una obra musical en formato de audio, la procesa con el modelo de IA Demucs
+    para separar el acompañamiento del piano, analiza su tempo con Librosa
+    y genera un contexto musicológico con la API de Google Gemini.
     """,
     version="1.2.0"
 )
 
-# <-- NUEVO: Configurar CORS
-# Le decimos a FastAPI que permita peticiones desde tu frontend
+# --- CONFIGURACIÓN DE CORS ---
+# Lista de orígenes permitidos para hacer peticiones a esta API.
+# Solo el frontend de desarrollo (Vite en puerto 5173) está autorizado.
+# En producción, aquí iría la URL del dominio del frontend desplegado.
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -70,47 +65,41 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
-    allow_headers=["*"], # Permite cualquier cabecera (como el Authorization con el JWT)
+    allow_credentials=True,  # Necesario para enviar cookies o el header Authorization con el JWT
+    allow_methods=["*"],     # Permite todos los métodos HTTP (GET, POST, DELETE, etc.)
+    allow_headers=["*"],     # Permite cualquier cabecera, incluido 'Authorization: Bearer <token>'
 )
 
-# Esta instrucción lee los modelos y CREA las tablas físicas en cadenza.db si no existen.
+# --- INICIALIZACIÓN DE LA BASE DE DATOS ---
+# Crea físicamente las tablas en cadenza.db según los modelos ORM definidos en models.py.
+# Si las tablas ya existen, esta instrucción no hace nada (no borra datos).
 models.Base.metadata.create_all(bind=engine)
-# ----------------------------------------
 
-# CONFIGURACION 
-"""
-Convenio de cambio de versiones:
-    -1.0.X => Cuando se arregla un bug pequeño.
-    -1.X.0 => Cuando se añade una nueva funcionalidad, pero el resto sigue igual.
-    -X.0.0 => Cuando el cambio hace que lo demas deje de funcionalidad (bastante radical btw).
-"""
-
-
-# IMPORTANTE (web)
+# --- ARCHIVOS ESTÁTICOS ---
+# Monta la carpeta OUTPUT_DIR ("separated") en la ruta /files del servidor.
+# Esto permite que el frontend acceda a los audios procesados mediante URLs del tipo:
+# http://127.0.0.1:8000/files/htdemucs_6s/<carpeta_obra>/no_piano.mp3
 app.mount("/files", StaticFiles(directory=OUTPUT_DIR), name="files")
-"""
-Montar la carpeta separated para que sea accesible por web.
-Esto permite que la app descargue los audios resultantes.
-"""
 
-# Incluir las rutas (Endpoints)
-# Agrupamos las rutas por "tags" para que en Swagger (/docs) se vea más organizado
+# --- REGISTRO DE ROUTERS ---
+# Cada router agrupa un conjunto de endpoints. El prefijo se antepone a todas sus rutas.
+# Los tags agrupan los endpoints en secciones dentro de la documentación Swagger (/docs).
 app.include_router(auth.router, prefix="/api/auth", tags=["Usuarios y Seguridad"])
 app.include_router(tracks.router, prefix="/api/v1", tags=["IA y Pistas"])
-app.include_router(contexto.router)
-app.include_router(audio.router)
+app.include_router(contexto.router)  # Prefijo definido internamente: /api/contexto
+app.include_router(audio.router)     # Prefijo definido internamente: /api/audio
 
 @app.get("/")
 async def home():
     """
-    Endpoint raiz para verificar el estado del servidor.
+    Endpoint raíz de verificación del estado del servidor (Health Check).
     
-    Se utiliza como 'Health Check' para confirmar que la API esta desplegada
-    y escuchando peticiones correctamente antes de intentar operaciones complejas.
-
-    :return: Un mensaje de bienvenida indicando que el backend esta activo.
-    :rtype: dict
+    Permite comprobar de forma rápida que la API está desplegada y respondiendo
+    antes de realizar operaciones más complejas. También sirve como punto de
+    entrada para herramientas de monitorización.
+    
+    Returns:
+        dict: Mensaje de confirmación indicando que el servidor está activo
+              y recordando la URL de la documentación interactiva.
     """
-    return{"message" : "Servidor Cadenza Activo. Usa /docs para probar."}
+    return {"message": "Servidor Cadenza Activo. Usa /docs para probar."}
