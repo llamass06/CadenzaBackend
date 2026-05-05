@@ -26,7 +26,7 @@ def ejecutar_demucs(file_path):
         "--overlap", "0.25",      # Para que no se noten cortes en el audio
         "--segment", "7",       # Segmento seguro para que no falle la memoria (MAX => 7.8 pero solo admite enteros)
         "--clip-mode", "rescale", # Para evitar que el audio distorsione
-        "-j", "0"                 # Uso toda la CPU disponible
+        "-j", "0"                 # Desactivo procesos paralelos para evitar desbordar los 4GB de RAM (en Google Cloud)
     ]
     
     try:

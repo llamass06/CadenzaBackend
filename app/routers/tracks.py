@@ -58,6 +58,11 @@ async def separar_pistas(
     relative_path = f"{MODEL_NAME}/{song_folder}"
     db_path_backing = f"{relative_path}/no_piano.mp3"
     
+    # Eliminar el archivo piano.mp3 para no guardarlo
+    path_piano_to_delete = os.path.join(OUTPUT_DIR, relative_path, "piano.mp3")
+    if os.path.exists(path_piano_to_delete):
+        os.remove(path_piano_to_delete)
+    
     # --- NUEVO: PEDIR A GEMINI MIENTRAS SE GUARDA ---
     texto_contexto = "Información no disponible."
     try:
