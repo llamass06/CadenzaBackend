@@ -1,4 +1,5 @@
 import secrets
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -47,11 +48,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # D) ENVÍO DE CORREO REAL CON SMTP
-    # ¡Asegúrate de poner tu correo y tu contraseña de aplicación aquí!
-    # IMPORTANTE: Si usas Gmail, debes generar una "Contraseña de aplicación" desde los ajustes de seguridad de tu cuenta.
-    sender_email = "cadenzaappp@gmail.com" # TODO: PON TU CORREO
-    sender_password = "svyw ptkf gqpn uhru" # TODO: PON TU CONTRASEÑA
-    smtp_server = "smtp.gmail.com"  # Cambiar si usas otro proveedor (ej. smtp-mail.outlook.com)
+
+    email_password = os.getenv("EMAIL_PASSWORD")
+    email = os.getenv("EMAIL")
+
+    sender_email = email
+    sender_password = email_password
+    smtp_server = "smtp.gmail.com"  
     smtp_port = 465  # 465 para SSL o 587 para TLS dependiendo del servidor
     
     link_verificacion = f"http://localhost:8000/api/auth/verify?token={token_verificacion}"
