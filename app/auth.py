@@ -16,6 +16,10 @@ from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el archivo .env
+load_dotenv()
 
 # Dependencias de FastAPI y SQLAlchemy para el sistema de inyección de dependencias
 from fastapi import Depends, HTTPException, status
