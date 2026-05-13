@@ -79,7 +79,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     smtp_server = "smtp.gmail.com"  
     smtp_port = 465  # 465 para SSL o 587 para TLS dependiendo del servidor
     
-    link_verificacion = f"http://localhost:8000/api/auth/verify?token={token_verificacion}"
+    base_url = "https://disparity-risotto-regretful.ngrok-free.dev" 
+    link_verificacion = f"{base_url}/api/auth/verify?token={token_verificacion}"
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
