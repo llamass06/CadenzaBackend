@@ -176,7 +176,7 @@ async def obtener_mis_obras(
     """
     canciones = db.query(models.Song).filter(models.Song.owner_id == current_user.id).order_by(models.Song.id.desc()).all()
     
-    base_url = "http://127.0.0.1:8000/files"
+    base_url = "https://disparity-risotto-regretful.ngrok-free.dev/files"
     resultado = []
     
     for c in canciones:
