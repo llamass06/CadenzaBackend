@@ -57,10 +57,7 @@ app = FastAPI(
 # Lista de orígenes permitidos para hacer peticiones a esta API.
 # Solo el frontend de desarrollo (Vite en puerto 5173) está autorizado.
 # En producción, aquí iría la URL del dominio del frontend desplegado.
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
