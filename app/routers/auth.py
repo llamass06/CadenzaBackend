@@ -29,24 +29,6 @@ router = APIRouter()
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Registra un nuevo usuario en el sistema.
-    
-    Flujo de ejecución:
-    1. Verifica que el correo electrónico no esté ya registrado.
-    2. Hashea (encripta) la contraseña introducida por el usuario.
-    3. Genera un token seguro y único para la verificación de correo electrónico.
-    4. Guarda el nuevo usuario en la base de datos (con estado "no verificado").
-    5. Envía un correo electrónico al usuario usando SMTP con un enlace para verificar su cuenta.
-    
-    Args:
-        user (schemas.UserCreate): Los datos del usuario (email, username, password) recibidos del cliente.
-        db (Session): Sesión de la base de datos inyectada como dependencia.
-        
-    Returns:
-        dict: Mensaje informativo sobre la creación exitosa del usuario y el envío del correo.
-        
-    Raises:
-        HTTPException: 
-            - 400 Si el correo electrónico ya se encuentra registrado.
     """
     # A) Comprobar si existe
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -62,7 +44,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         username=user.username,
         hashed_password=hashed_password,
-        is_verified=False,
+        is_verified=False, # Cambiar a True si quieres omitir la verificación por ahora
         verification_token=token_verificacion
     )
     db.add(new_user)
@@ -70,14 +52,13 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # D) ENVÍO DE CORREO REAL CON SMTP
-
     email_password = os.getenv("EMAIL_PASSWORD")
     email = os.getenv("EMAIL")
 
     sender_email = email
     sender_password = email_password
     smtp_server = "smtp.gmail.com"  
-    smtp_port = 587  # 465 para SSL o 587 para TLS dependiendo del servidor
+    smtp_port = 587  # Mantenemos el puerto 587
     
     base_url = "https://disparity-risotto-regretful.ngrok-free.dev" 
     link_verificacion = f"{base_url}/api/auth/verify?token={token_verificacion}"
@@ -101,36 +82,24 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     msg.attach(MIMEText(html_content, "html"))
     
     try:
-        # Usamos SMTP_SSL para el puerto 465 (Gmail por defecto)
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+        # --- CAMBIO CLAVE AQUÍ ---
+        # Para el puerto 587 se usa smtplib.SMTP() + starttls()
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+            server.starttls() # Inicia la encriptación obligatoria para el puerto 587
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, user.email, msg.as_string())
+        print("Correo enviado con éxito")
     except Exception as e:
         print(f"Error al enviar el correo: {e}")
+        # Mantenemos el return fuera para que el frontend no se bloquee si falla el SMTP
         
     return {"message": "Usuario creado. Por favor, revisa tu correo para verificar la cuenta."}
 
-# 2. ENDPOINT PARA VERIFICAR EL CORREO (PANTALLA HTML)
+# 2. ENDPOINT PARA VERIFICAR EL CORREO
 @router.get("/verify", response_class=HTMLResponse)
 def verify_email(token: str, db: Session = Depends(get_db)):
-    """
-    Verifica la dirección de correo electrónico del usuario.
-    
-    Este endpoint se accede mediante el enlace enviado al correo electrónico
-    del usuario. Busca al usuario por el token de verificación en la URL,
-    y si lo encuentra y es válido, actualiza su estado a "verificado".
-    
-    Args:
-        token (str): El token único de verificación que fue enviado por correo.
-        db (Session): Sesión de la base de datos inyectada como dependencia.
-        
-    Returns:
-        HTMLResponse: Una página HTML elegante indicando el resultado de la verificación 
-        (éxito o token inválido/caducado).
-    """
     user = db.query(models.User).filter(models.User.verification_token == token).first()
     
-    # Plantilla HTML para la respuesta visual
     html_template = """
     <!DOCTYPE html>
     <html lang="es">
@@ -172,33 +141,11 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     )
 
 
-# 3. LOGIN (CONSEGUIR TOKEN)
+# 3. LOGIN
 @router.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """
-    Endpoint de inicio de sesión para obtener el Token de Acceso JWT.
-    
-    Valida las credenciales proporcionadas por el usuario (email como username 
-    y contraseña) y comprueba que la cuenta esté verificada. Si es correcto, 
-    devuelve un token JWT con la información del usuario para la autorización
-    en futuros requests.
-    
-    Args:
-        form_data (OAuth2PasswordRequestForm): Formulario estándar de OAuth2 con las credenciales (username/email y password).
-        db (Session): Sesión de la base de datos inyectada como dependencia.
-        
-    Returns:
-        dict: Un diccionario con el token de acceso (JWT) y el tipo de token ("bearer").
-        
-    Raises:
-        HTTPException:
-            - 401 Si las credenciales (email o contraseña) son incorrectas.
-            - 403 Si la cuenta de usuario no ha sido verificada aún.
-    """
-    # A) Buscar usuario por email
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     
-    # B) Verificar password
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -206,14 +153,12 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # C) Verificar si ha validado su correo
     if not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tu cuenta aún no está verificada. Revisa tu bandeja de entrada."
         )
     
-    # D) Generar Token
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={
