@@ -37,6 +37,9 @@ semaforo_demucs = asyncio.Semaphore(MAX_PROCESOS)
 # Formatos de audio que el servidor acepta para su procesamiento
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a"}
 
+# Definimos la URL base del servidor para construir enlaces estáticos
+BASE_URL = "https://disparity-risotto-regretful.ngrok-free.dev/files"
+
 @router.post("/separar")
 async def separar_pistas(
     title: str = Form(...),                            
@@ -142,14 +145,13 @@ async def separar_pistas(
     db.commit()
     db.refresh(nueva_cancion)
     
-    base_url = "http://127.0.0.1:8000/files"
     
     return {
         "status" : "success",
         "song_id": nueva_cancion.id,
         "title": title,
         "artist": artist,
-        "backing_url" : f"{base_url}/{db_path_backing}",
+        "backing_url" : f"{BASE_URL}/{db_path_backing}",
         "bpm": metadata["bpm"],
         "contexto": texto_contexto
     }
@@ -176,7 +178,6 @@ async def obtener_mis_obras(
     """
     canciones = db.query(models.Song).filter(models.Song.owner_id == current_user.id).order_by(models.Song.id.desc()).all()
     
-    base_url = "https://disparity-risotto-regretful.ngrok-free.dev/files"
     resultado = []
     
     for c in canciones:
@@ -187,8 +188,8 @@ async def obtener_mis_obras(
             "bpm": c.bpm,
             "duration": c.duration,
             "contexto": c.contexto,
-            "backing_url": f"{base_url}/{c.path_backing}" if c.path_backing else None,
-            "piano_url": f"{base_url}/{c.path_piano}" if c.path_piano else None 
+            "backing_url": f"{BASE_URL}/{c.path_backing}" if c.path_backing else None,
+            "piano_url": f"{BASE_URL}/{c.path_piano}" if c.path_piano else None 
         })
         
     return resultado
