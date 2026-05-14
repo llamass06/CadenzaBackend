@@ -36,7 +36,7 @@ MODEL_NAME = "htdemucs_6s"
 # Número máximo de procesos de Demucs que pueden ejecutarse simultáneamente.
 # Se mantiene en 1 para evitar desbordamiento de RAM en el servidor de despliegue (4 GB).
 # Aumentar este valor solo si el servidor dispone de más memoria y núcleos disponibles.
-MAX_PROCESOS = 2
+MAX_PROCESOS = 1
 
 # --- INICIALIZACIÓN DE DIRECTORIOS ---
 

@@ -58,9 +58,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     sender_email = email
     sender_password = email_password
     smtp_server = "smtp.gmail.com"  
-    smtp_port = 587  # Mantenemos el puerto 587
+    smtp_port = 587  # Los demas no funkan en produccion
     
-    base_url = "https://disparity-risotto-regretful.ngrok-free.dev" 
+    base_url = os.getenv("BASE_URL")
     link_verificacion = f"{base_url}/api/auth/verify?token={token_verificacion}"
     
     html_content = f"""
