@@ -189,8 +189,8 @@ async def obtener_mis_obras(
             "bpm": c.bpm,
             "duration": c.duration,
             "contexto": c.contexto,
-            "backing_url": f"{base_url}/{c.path_backing}" if c.path_backing else None,
-            "piano_url": f"{base_url}/{c.path_piano}" if c.path_piano else None 
+            "backing_url": f"{base_url}/files/{c.path_backing}" if c.path_backing else None,
+            "piano_url": f"{base_url}/files/{c.path_piano}" if c.path_piano else None 
         })
         
     return resultado
