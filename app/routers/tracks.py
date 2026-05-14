@@ -14,9 +14,8 @@ desbordamientos de memoria en el servidor.
 import os
 import shutil
 import asyncio
-import uuid
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 
 from app.config import UPLOAD_DIR, MODEL_NAME, MAX_PROCESOS, OUTPUT_DIR
@@ -24,7 +23,7 @@ from app.services.ai_separation import ejecutar_demucs
 from app.services.audio_analysis import analizar_track
 
 from app.database import models
-from app.database.database import get_db, SessionLocal
+from app.database.database import get_db
 from app.auth import get_current_user
 
 # Importamos el generador de contexto musicológico de Gemini
@@ -35,111 +34,50 @@ router = APIRouter()
 # Semáforo que limita el número de procesos de Demucs simultáneos (configurado en app.config)
 semaforo_demucs = asyncio.Semaphore(MAX_PROCESOS)
 
-# Diccionario en memoria para rastrear el estado de los procesos de separación
-# Mapea task_id -> { "status": "esperando" | "procesando" | "success" | "error", ... }
-tasks_db = {}
-
 # Formatos de audio que el servidor acepta para su procesamiento
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a"}
 
 # Definimos la URL base del servidor para construir enlaces estáticos
 base_url = os.getenv("BASE_URL")
 
-async def procesar_obra_background(
-    task_id: str,
-    title: str,
-    artist: str,
-    file_location: str,
-    safe_filename: str,
-    current_user_id: int
-):
-    try:
-        tasks_db[task_id]["status"] = "esperando"
-        
-        exito_separacion = False
-        metadata = {"bpm": 0, "duration": 0} 
-
-        async with semaforo_demucs:
-            tasks_db[task_id]["status"] = "procesando"
-            exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
-            if exito_separacion:
-                metadata = await asyncio.to_thread(analizar_track, file_location)
-
-        if not exito_separacion:
-            if os.path.exists(file_location):
-                os.remove(file_location)
-            tasks_db[task_id] = {
-                "status": "error",
-                "detail": "Error en el procesamiento de audio con Demucs."
-            }
-            return
-        
-        # Construir rutas relativas para almacenarlas en la BBDD
-        song_folder = os.path.splitext(safe_filename)[0]
-        relative_path = f"{MODEL_NAME}/{song_folder}"
-        db_path_backing = f"{relative_path}/no_piano.mp3"
-        
-        path_piano_to_delete = os.path.join(OUTPUT_DIR, relative_path, "piano.mp3")
-        if os.path.exists(path_piano_to_delete):
-            os.remove(path_piano_to_delete)
-        
-        texto_contexto = "Información no disponible."
-        try:
-            query_ia = f"{title} de {artist}" if artist else title
-            res_ia = await generar_contexto_obra(ObraRequest(nombre_obra=query_ia))
-            texto_contexto = res_ia["contexto"]
-        except Exception as e:
-            print(f"Error generando contexto IA: {e}")
-
-        # Guardar en base de datos con una nueva sesión
-        db = SessionLocal()
-        try:
-            nueva_cancion = models.Song(
-                title=title,               
-                artist=artist,             
-                path_piano=None,
-                path_backing=db_path_backing,
-                bpm=metadata["bpm"],
-                duration=metadata["duration"],
-                contexto=texto_contexto,
-                owner_id=current_user_id  
-            )
-            db.add(nueva_cancion)
-            db.commit()
-            db.refresh(nueva_cancion)
-            
-            # Actualizar estado a completado con los datos para el frontend
-            tasks_db[task_id] = {
-                "status" : "success",
-                "song_id": nueva_cancion.id,
-                "title": title,
-                "artist": artist,
-                "backing_url" : f"{base_url}/{db_path_backing}",
-                "bpm": metadata["bpm"],
-                "contexto": texto_contexto
-            }
-        finally:
-            db.close()
-            
-    except Exception as e:
-        tasks_db[task_id] = {
-            "status": "error",
-            "detail": str(e)
-        }
 
 @router.post("/separar")
 async def separar_pistas(
-    background_tasks: BackgroundTasks,
     title: str = Form(...),                            
     artist: str = Form(None),                         
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ): 
     """
-    Inicia el procesamiento de una obra musical en segundo plano.
+    Procesa una obra musical: separa el acompañamiento del piano y la guarda en la BBDD.
     
-    Devuelve un task_id de forma inmediata para que el frontend pueda
-    consultar el estado del procesamiento mediante el endpoint /status/{task_id}.
+    Flujo de ejecución:
+    1. Valida que la extensión del archivo sea permitida.
+    2. Genera un nombre de archivo seguro y único por usuario para evitar colisiones.
+    3. Guarda el archivo en el directorio de subidas (UPLOAD_DIR).
+    4. Ejecuta Demucs en un hilo separado (controlado por semáforo) para no bloquear el servidor.
+    5. Si Demucs tiene éxito, analiza el audio para obtener BPM y duración.
+    6. Elimina el archivo piano.mp3 generado por Demucs para ahorrar espacio en disco.
+    7. Consulta a Gemini para generar un texto de contexto musicológico de la obra.
+    8. Guarda la canción (con su contexto y ruta del acompañamiento) en la base de datos.
+    9. Devuelve la URL del acompañamiento y los metadatos al frontend.
+    
+    Args:
+        title (str): Título de la obra musical, enviado como campo de formulario.
+        artist (str, optional): Nombre del autor/compositor. Puede ser None.
+        file (UploadFile): Archivo de audio a procesar.
+        db (Session): Sesión de la base de datos inyectada como dependencia.
+        current_user (models.User): Usuario autenticado, obtenido del token JWT.
+        
+    Returns:
+        dict: Estado del procesamiento, ID de la canción, URL del acompañamiento,
+              BPM, y el texto de contexto generado por la IA.
+              
+    Raises:
+        HTTPException:
+            - 400 Si el formato del archivo no está entre los permitidos.
+            - 500 Si Demucs falla durante la separación de pistas.
     """
     # Validar que la extensión sea de un formato de audio admitido
     _, file_extension = os.path.splitext(file.filename)
@@ -149,53 +87,75 @@ async def separar_pistas(
             detail=f"Formato no válido. Aceptados: {ALLOWED_EXTENSIONS}"
         )
     
-    # Construir un nombre de archivo único
+    # Construir un nombre de archivo único para evitar sobreescribir obras de otros usuarios
     safe_filename = f"user_{current_user.id}_{file.filename.replace(' ', '_')}"
     file_location = os.path.join(UPLOAD_DIR, safe_filename) 
     
     # Guardar el archivo recibido en el disco
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(file.file, file_object)
+        
+    exito_separacion = False
+    metadata = {"bpm": 0, "duration": 0} 
 
-    # Generar un identificador único para la tarea
-    task_id = str(uuid.uuid4())
+    # El semáforo garantiza que solo MAX_PROCESOS instancias de Demucs corren a la vez
+    async with semaforo_demucs:
+        exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
+        if exito_separacion:
+            # Analizar BPM y duración solo si la separación fue exitosa
+            metadata = await asyncio.to_thread(analizar_track, file_location)
+
+    if not exito_separacion:
+        # Limpiar el archivo subido si Demucs falla para no dejar basura en disco
+        if os.path.exists(file_location):
+            os.remove(file_location)
+        raise HTTPException(status_code=500, detail="Error en el procesamiento de audio.")
     
-    # Inicializar estado
-    tasks_db[task_id] = {"status": "esperando"}
+    # Construir rutas relativas para almacenarlas en la BBDD
+    song_folder = os.path.splitext(safe_filename)[0]
+    relative_path = f"{MODEL_NAME}/{song_folder}"
+    db_path_backing = f"{relative_path}/no_piano.mp3"
     
-    # Enviar tarea a segundo plano
-    background_tasks.add_task(
-        procesar_obra_background,
-        task_id=task_id,
-        title=title,
-        artist=artist,
-        file_location=file_location,
-        safe_filename=safe_filename,
-        current_user_id=current_user.id
+    # Demucs genera dos archivos (piano.mp3 y no_piano.mp3); eliminamos piano.mp3 para ahorrar espacio
+    path_piano_to_delete = os.path.join(OUTPUT_DIR, relative_path, "piano.mp3")
+    if os.path.exists(path_piano_to_delete):
+        os.remove(path_piano_to_delete)
+    
+    # Consultar a Gemini el contexto musicológico de la obra mientras se guarda en BBDD
+    texto_contexto = "Información no disponible."
+    try:
+        query_ia = f"{title} de {artist}" if artist else title
+        res_ia = await generar_contexto_obra(ObraRequest(nombre_obra=query_ia))
+        texto_contexto = res_ia["contexto"]
+    except Exception as e:
+        # Si Gemini falla, no bloqueamos el proceso; simplemente se guarda sin contexto
+        print(f"Error generando contexto IA: {e}")
+
+    # Crear el registro de la canción en la base de datos
+    nueva_cancion = models.Song(
+        title=title,               
+        artist=artist,             
+        path_piano=None,            # El piano.mp3 se elimina, así que no se referencia
+        path_backing=db_path_backing,
+        bpm=metadata["bpm"],
+        duration=metadata["duration"],
+        contexto=texto_contexto,
+        owner_id=current_user.id  
     )
-
-    return {
-        "status": "queued",
-        "task_id": task_id
-    }
-
-@router.get("/status/{task_id}")
-async def obtener_estado_tarea(task_id: str):
-    """
-    Devuelve el estado de una tarea de procesamiento de audio.
+    db.add(nueva_cancion)
+    db.commit()
+    db.refresh(nueva_cancion)
     
-    Args:
-        task_id (str): ID de la tarea devuelto por /separar.
-        
-    Returns:
-        dict: Estado actual ("esperando", "procesando", "success", "error")
-              junto con metadatos de la canción si ha finalizado con éxito.
-    """
-    if task_id not in tasks_db:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada.")
-        
-    return tasks_db[task_id]
-
+    
+    return {
+        "status" : "success",
+        "song_id": nueva_cancion.id,
+        "title": title,
+        "artist": artist,
+        "backing_url" : f"{base_url}/{db_path_backing}",
+        "bpm": metadata["bpm"],
+        "contexto": texto_contexto
+    }
 
 @router.get("/mis-obras")
 async def obtener_mis_obras(
@@ -230,7 +190,7 @@ async def obtener_mis_obras(
             "duration": c.duration,
             "contexto": c.contexto,
             "backing_url": f"{base_url}/{c.path_backing}" if c.path_backing else None,
-            "piano_url": f"{BASEbase_url_URL}/{c.path_piano}" if c.path_piano else None 
+            "piano_url": f"{base_url}/{c.path_piano}" if c.path_piano else None 
         })
         
     return resultado
