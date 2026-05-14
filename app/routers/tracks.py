@@ -11,10 +11,11 @@ Utiliza un semáforo para limitar las peticiones concurrentes a Demucs y evitar
 desbordamientos de memoria en el servidor.
 """
 
+from json import load
 import os
 import shutil
 import asyncio
-
+from dotenv import load_dotenv
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 
@@ -30,6 +31,7 @@ from app.auth import get_current_user
 from app.routers.contexto import generar_contexto_obra, ObraRequest
 
 router = APIRouter()
+load_dotenv()
 
 # Semáforo que limita el número de procesos de Demucs simultáneos (configurado en app.config)
 semaforo_demucs = asyncio.Semaphore(MAX_PROCESOS)
