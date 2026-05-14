@@ -23,10 +23,9 @@ Historial de versiones:
 # StaticFiles: expone una carpeta del servidor como ruta web pública.
 # JSONResponse: permite construir respuestas JSON personalizadas.
 # CORSMiddleware: gestiona los permisos de origen cruzado (Cross-Origin Resource Sharing).
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
-import os
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 # Configuración global de rutas y constantes del servidor
@@ -80,12 +79,7 @@ models.Base.metadata.create_all(bind=engine)
 # Monta la carpeta OUTPUT_DIR ("separated") en la ruta /files del servidor.
 # Esto permite que el frontend acceda a los audios procesados mediante URLs del tipo:
 # http://127.0.0.1:8000/files/htdemucs_6s/<carpeta_obra>/no_piano.mp3
-@app.get("/files/{file_path:path}")
-async def serve_file(file_path: str):
-    file_full_path = os.path.join(OUTPUT_DIR, file_path)
-    if os.path.exists(file_full_path):
-        return FileResponse(file_full_path)
-    raise HTTPException(status_code=404, detail="Archivo no encontrado")
+app.mount("/files", StaticFiles(directory=OUTPUT_DIR), name="files")
 
 # --- REGISTRO DE ROUTERS ---
 # Cada router agrupa un conjunto de endpoints. El prefijo se antepone a todas sus rutas.
