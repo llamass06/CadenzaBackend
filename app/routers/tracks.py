@@ -152,7 +152,7 @@ async def separar_pistas(
         "song_id": nueva_cancion.id,
         "title": title,
         "artist": artist,
-        "backing_url" : f"{base_url}/{db_path_backing}",
+        "backing_url" : f"{base_url}/files/{db_path_backing}",
         "bpm": metadata["bpm"],
         "contexto": texto_contexto
     }
