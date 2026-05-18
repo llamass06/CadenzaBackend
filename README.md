@@ -9,19 +9,19 @@ Actualmente, el backend es plenamente funcional en producción, gestionando la s
 
 ##  🌟 Características Implementadas
 
-    Separación de Pistas con IA: Integración nativa con el modelo Demucs (htdemucs_6s) para realizar un aislamiento quirúrgico del piano respecto al resto del acompañamiento orquestal.
+Separación de Pistas con IA: Integración nativa con el modelo Demucs (htdemucs_6s) para realizar un aislamiento quirúrgico del piano respecto al resto del acompañamiento orquestal.
 
-    Análisis Físico y Musical (DSP): Uso de Librosa para el cálculo automatizado del tempo (BPM) y la extracción precisa de la duración de la pista.
+Análisis Físico y Musical (DSP): Uso de Librosa para el cálculo automatizado del tempo (BPM) y la extracción precisa de la duración de la pista.
 
-    Inteligencia Artificial Generativa: Integración con la API de Google Gemini para proporcionar contexto histórico, estilístico y técnico sobre la obra subida.
+Inteligencia Artificial Generativa: Integración con la API de Google Gemini para proporcionar contexto histórico, estilístico y técnico sobre la obra subida.
 
-    Gestión de Concurrencia y Hardware: Implementación de semáforos asíncronos (asyncio.Semaphore) para proteger la RAM y CPU del servidor, limitando el procesamiento neuronal a 1 pista simultánea.
+Gestión de Concurrencia y Hardware: Implementación de semáforos asíncronos (asyncio.Semaphore) para proteger la RAM y CPU del servidor, limitando el procesamiento neuronal a 1 pista simultánea.
 
-    Gestión de Biblioteca de Usuario: Sistema de almacenamiento en la nube con validación de cuotas (límite establecido de 3 obras por usuario en el plan actual), incluyendo borrado en cascada de archivos físicos y registros.
+Gestión de Biblioteca de Usuario: Sistema de almacenamiento en la nube con validación de cuotas (límite establecido de 3 obras por usuario en el plan actual), incluyendo borrado en cascada de archivos físicos y registros.
 
-    Autenticación y Seguridad: Sistema completo de registro y login mediante tokens JWT (JSON Web Tokens) y contraseñas hasheadas con Bcrypt.
+Autenticación y Seguridad: Sistema completo de registro y login mediante tokens JWT (JSON Web Tokens) y contraseñas hasheadas con Bcrypt.
 
-    Suite de Testing Automatizado: Pruebas de integración y unitarias utilizando Pytest, bases de datos SQLite en memoria (:memory:) para aislamiento, y mocking (unittest.mock) de la IA generativa para garantizar eficiencia.
+Suite de Testing Automatizado: Pruebas de integración y unitarias utilizando Pytest, bases de datos SQLite en memoria (:memory:) para aislamiento, y mocking (unittest.mock) de la IA generativa para garantizar eficiencia.
 
 ## 🛠️ Stack Tecnológico
 
