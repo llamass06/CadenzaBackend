@@ -114,22 +114,4 @@ Gestión de Biblioteca
 
     ⏳ Generación automática de partituras dinámicas en base a la transcripción de la obra procesada.
 
-📁 Arquitectura del Proyecto
-Plaintext
-
-CadenzaBackend/
-├── uploads/                    # Recepción de archivos temporales (Git Ignore)
-├── separated/                  # Pistas procesadas por la IA Demucs (Git Ignore)
-├── tests/                      # Suite de pruebas automatizadas (Pytest)
-├── app/                        # Código fuente del servidor
-│   ├── config.py               # Variables globales y de entorno
-│   ├── main.py                 # Core de FastAPI, Middlewares y CORS
-│   ├── auth.py                 # Lógica de seguridad JWT y Bcrypt
-│   ├── database/               # Modelos y motor SQLAlchemy
-│   ├── routers/                # Endpoints (tracks, auth, library)
-│   └── services/               # Lógica de negocio (Demucs, Librosa, Gemini)
-├── requirements.txt            # Dependencias de Python
-├── .gitignore                  
-└── README.md
-
 Desarrollado por Álvaro Llamas Martín - Proyecto Integrado de 2º DAM.
