@@ -1,10 +1,13 @@
 Cadenza Backend - Deconstrucción Orquestal para Pianistas 🎹
 
 Backend del proyecto integrado Cadenza, una herramienta diseñada para estudiantes de piano que permite aislar o eliminar la pista de piano de cualquier obra musical u orquestal utilizando Inteligencia Artificial, y ofrecer un análisis de contexto avanzado.
-🚀 Estado del Proyecto
+
+## 🚀 Estado del Proyecto
 
 Actualmente, el backend es plenamente funcional en producción, gestionando la separación de audio, el análisis musical matemático, la generación de contexto mediante LLMs y sirviendo datos a la aplicación cliente a través de una API RESTful segura.
-🌟 Características Implementadas
+
+
+##  🌟 Características Implementadas
 
     Separación de Pistas con IA: Integración nativa con el modelo Demucs (htdemucs_6s) para realizar un aislamiento quirúrgico del piano respecto al resto del acompañamiento orquestal.
 
@@ -20,7 +23,7 @@ Actualmente, el backend es plenamente funcional en producción, gestionando la s
 
     Suite de Testing Automatizado: Pruebas de integración y unitarias utilizando Pytest, bases de datos SQLite en memoria (:memory:) para aislamiento, y mocking (unittest.mock) de la IA generativa para garantizar eficiencia.
 
-🛠️ Stack Tecnológico
+## 🛠️ Stack Tecnológico
 
     Lenguaje: Python 3.11.9
 
@@ -40,7 +43,7 @@ Actualmente, el backend es plenamente funcional en producción, gestionando la s
 
     Infraestructura: Servidor VPS Linux (Hetzner) + Ngrok (Túneles de red)
 
-📡 Despliegue en Producción
+## 📡 Despliegue en Producción
 
 El proyecto está diseñado para ser desplegado en un servidor VPS Linux. El flujo de despliegue actual se realiza mediante:
 
@@ -50,7 +53,7 @@ El proyecto está diseñado para ser desplegado en un servidor VPS Linux. El flu
 
     Exposición segura de la API hacia la web app (Vercel) utilizando túneles de red (Ngrok).
 
-⚙️ Instalación y Configuración Local
+## ⚙️ Instalación y Configuración Local
 
 Prerrequisitos:
 
@@ -80,7 +83,7 @@ pip install -U git+https://github.com/facebookresearch/demucs#egg=demucs
 # 5. Arrancar el servidor de desarrollo
 uvicorn app.main:app --reload
 
-🔌 Endpoints Principales (API v1)
+## 🔌 Endpoints Principales (API v1)
 
 Documentación interactiva disponible vía Swagger UI en /docs al arrancar el servidor.
 Autenticación
@@ -108,10 +111,14 @@ Gestión de Biblioteca
 
     DELETE /api/v1/obras/{id}: Elimina de forma segura los metadatos de la base de datos y los archivos físicos del servidor para liberar espacio.
 
-🚧 En Desarrollo (Futuras Iteraciones)
+## 🚧 En Desarrollo (Futuras Iteraciones)
 
     ⏳ Interfaz de sincronización de luces (Hardware IoT) en caso de que el dispositivo cliente disponga de ellas.
 
     ⏳ Generación automática de partituras dinámicas en base a la transcripción de la obra procesada.
+    
+    ⏳Pagina de ajustes.
+
+    ⏳ Chatbot.
 
 Desarrollado por Álvaro Llamas Martín - Proyecto Integrado de 2º DAM.
