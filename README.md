@@ -1,139 +1,135 @@
-## Cadenza Backend - Deconstrucción Orquestal para Pianistas 🎹
+Cadenza Backend - Deconstrucción Orquestal para Pianistas 🎹
 
-Backend del proyecto integrado Cadenza, una herramienta diseñada para estudiantes de piano que permite aislar o eliminar la pista de piano de cualquier obra musical u orquestal utilizando Inteligencia Artificial.
+Backend del proyecto integrado Cadenza, una herramienta diseñada para estudiantes de piano que permite aislar o eliminar la pista de piano de cualquier obra musical u orquestal utilizando Inteligencia Artificial, y ofrecer un análisis de contexto avanzado.
+🚀 Estado del Proyecto
 
-## 🚀 Estado del Proyecto
+Actualmente, el backend es plenamente funcional en producción, gestionando la separación de audio, el análisis musical matemático, la generación de contexto mediante LLMs y sirviendo datos a la aplicación cliente a través de una API RESTful segura.
+🌟 Características Implementadas
 
-Actualmente, el backend es plenamente funcional en cuanto al procesamiento de audio y análisis musical.
+    Separación de Pistas con IA: Integración nativa con el modelo Demucs (htdemucs_6s) para realizar un aislamiento quirúrgico del piano respecto al resto del acompañamiento orquestal.
 
-## Características Implementadas:
+    Análisis Físico y Musical (DSP): Uso de Librosa para el cálculo automatizado del tempo (BPM) y la extracción precisa de la duración de la pista.
 
-✅ Separación de Pistas con IA: Integración con el modelo Demucs (htdemucs_6s) para aislar el piano del resto del acompañamiento.
+    Inteligencia Artificial Generativa: Integración con la API de Google Gemini para proporcionar contexto histórico, estilístico y técnico sobre la obra subida.
 
-✅ Análisis Musical: Cálculo del tempo (BPM) y la duración de la pista utilizando Librosa.
+    Gestión de Concurrencia y Hardware: Implementación de semáforos asíncronos (asyncio.Semaphore) para proteger la RAM y CPU del servidor, limitando el procesamiento neuronal a 1 pista simultánea.
 
-✅ Gestión de Concurrencia: Implementación de semáforos asíncronos (asyncio.Semaphore) para proteger el hardware del servidor limitando el procesamiento a 1 pista simultánea.
+    Gestión de Biblioteca de Usuario: Sistema de almacenamiento en la nube con validación de cuotas (límite establecido de 3 obras por usuario en el plan actual), incluyendo borrado en cascada de archivos físicos y registros.
 
-✅ API RESTful: Desarrollada con FastAPI para la comunicación fluida con la futura app móvil.
+    Autenticación y Seguridad: Sistema completo de registro y login mediante tokens JWT (JSON Web Tokens) y contraseñas hasheadas con Bcrypt.
 
-✅ Base de Datos (BBDD): Sistema persistente con SQLite y SQLAlchemy para registrar usuarios de forma segura.
+    Suite de Testing Automatizado: Pruebas de integración y unitarias utilizando Pytest, bases de datos SQLite en memoria (:memory:) para aislamiento, y mocking (unittest.mock) de la IA generativa para garantizar eficiencia.
 
-✅ Autenticación y Seguridad: Implementación de un sistema de registro y login de usuarios mediante tokens JWT y contraseñas encriptadas con Bcrypt.
+🛠️ Stack Tecnológico
 
-✅ API RESTful & CORS: Desarrollada con FastAPI para la comunicación fluida con la web app (React). Middleware de CORS configurado para permitir peticiones desde dominios externos y redes locales.
+    Lenguaje: Python 3.11.9
 
-## 🚧 En Desarrollo (WIP):
-⏳ Interfaz de luces en caso de que el dispositivo cliente las tenga.
+    Framework Web: FastAPI / Uvicorn
 
-⏳ Creador automático de partituras en base a la obra recibida.
+    Motores de IA: Demucs (Facebook Research) + Google Generative AI (Gemini)
 
-## 🛠️ Stack Tecnológico
+    Digital Signal Processing (DSP): Librosa & NumPy
 
--Lenguaje: Python 3.11.9
+    Manipulación de Audio: FFmpeg
 
--Framework Web: FastAPI / Uvicorn
+    Base de Datos: SQLite + SQLAlchemy
 
--Motor de IA (Source Separation): Demucs (Facebook Research)
+    Seguridad: Bcrypt + Python-JOSE
 
--Análisis de Señal: Librosa & NumPy
+    Testing: Pytest + FastAPI TestClient
 
--Manipulación de Audio: FFmpeg
--Base de Datos: SQLite + SQLAlchemy
+    Infraestructura: Servidor VPS Linux (Hetzner) + Ngrok (Túneles de red)
 
--Seguridad: Bcrypt + Python-JOSE
+📡 Despliegue en Producción
 
-## ⚙️ Instalación y Configuración Local
+El proyecto está diseñado para ser desplegado en un servidor VPS Linux. El flujo de despliegue actual se realiza mediante:
 
-Prerrequisitos
+    Sincronización del código mediante git pull en el entorno de producción (Hetzner).
 
-Python 3.11.x (Versiones superiores pueden dar problemas con librerías tensoriales).
+    Ejecución del servidor ASGI (Uvicorn).
 
-FFmpeg instalado y configurado en las variables de entorno (PATH) del sistema.
+    Exposición segura de la API hacia la web app (Vercel) utilizando túneles de red (Ngrok).
 
-Git.
+⚙️ Instalación y Configuración Local
 
-## Pasos para desplegar
+Prerrequisitos:
 
-Clonar el repositorio:
+    Python 3.11.x (Versiones superiores pueden presentar incompatibilidades con las dependencias tensoriales de PyTorch).
 
+    FFmpeg instalado y añadido al PATH del sistema.
+
+    Claves de API válidas (ej. Google Gemini API Key) configuradas en las variables de entorno.
+
+Pasos de arranque:
+Bash
+
+# 1. Clonar el repositorio
 git clone https://github.com/llamass06/CadenzaBackend.git
 cd CadenzaBackend
 
-Crear y activar el entorno virtual:
+# 2. Crear y activar el entorno virtual (Windows)
+python -m venv venv
+.\venv\Scripts\Activate
 
-# En Windows
-    python -m venv venv
-    .\venv\Scripts\Activate
+# 3. Instalar dependencias estándar
+pip install -r requirements.txt
 
+# 4. Instalación de Demucs desde la fuente oficial
+pip install -U git+https://github.com/facebookresearch/demucs#egg=demucs
 
-Instalar dependencias (usando el archivo unificado):
+# 5. Arrancar el servidor de desarrollo
+uvicorn app.main:app --reload
 
-    pip install -r requirements.txt
-    
-# Instalación de Demucs desde la fuente oficial
-    pip install -U git+[https://github.com/facebookresearch/demucs#egg=demucs](https://github.com/facebookresearch/demucs#egg=demucs)
+🔌 Endpoints Principales (API v1)
 
+Documentación interactiva disponible vía Swagger UI en /docs al arrancar el servidor.
+Autenticación
 
-Arrancar el servidor de desarrollo:
+    POST /api/auth/token: Endpoint OAuth2. Recibe credenciales (username, password) y devuelve un token JWT.
 
-    uvicorn app.main:app --reload
+Motor Híbrido (Audio & IA)
 
-
-El servidor estará escuchando en http://127.0.0.1:8000.
-
-## 📡 Endpoints Principales (API v1)
-
-Puedes probar la API directamente usando Swagger UI navegando a http://127.0.0.1:8000/docs.
-
-# GET /
-
-Descripción: Health check para comprobar que el servidor está online.
-
-# POST /api/auth/token
-
-Descripción: Endpoint OAuth2 para el inicio de sesión. Recibe las credenciales y devuelve un token JWT.
-
-Body (x-www-form-urlencoded): username (correo) y password.
-Respuesta Exitosa (JSON):
-
-    {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "token_type": "bearer"
-    }
-
-# POST /api/v1/separar
-
-Descripción: Recibe un archivo de audio, ejecuta la red neuronal para separarlo y devuelve las URLs de descarga y los metadatos musicales.
-
-Body: multipart/form-data con la clave file.
-
-Respuesta Exitosa (JSON):
+    POST /api/v1/separar: Recibe un archivo de audio (multipart/form-data), ejecuta la red neuronal, calcula el BPM y genera el contexto. Devuelve:
+    JSON
 
     {
         "status": "success",
-        "song_name": "nombre_cancion",
-        "piano_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/piano.mp3)",
-        "backing_url": "[http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3](http://127.0.0.1:8000/files/htdemucs_6s/nombre_cancion/no_piano.mp3)",
-        "bpm": 120.5,
-        "duration": 185.2
+        "title": "Nocturne Op. 9 No. 2",
+        "artist": "Chopin",
+        "piano_url": "https://.../files/piano.mp3",
+        "backing_url": "https://.../files/no_piano.mp3",
+        "bpm": 132.0,
+        "contexto": "El Nocturno Op. 9 No. 2 es una obra romántica que destaca por..."
     }
 
+Gestión de Biblioteca
 
-## 📁 Estructura del Proyecto
+    GET /api/v1/mis-obras: Devuelve el array de obras procesadas pertenecientes al usuario autenticado (con validación de token).
 
-    CadenzaBackend/
-    ├── uploads/                    # Recepción de archivos temporales (ignorados en git)
-    ├── separated/                  # Pistas procesadas por la IA (ignorados en git)
-    ├── app/                        # Código fuente del servidor
-    │   ├── config.py               # Variables globales
-    │   ├── main.py                 # Core de FastAPI y configuración CORS
-    │   ├── auth.py                 # Lógica de seguridad y JWT
-    │   ├── database/               # Modelos y conexión a BBDD SQLAlchemy
-    │   ├── routers/                # Endpoints (tracks.py, auth.py)
-    │   └── services/               # Lógica de IA y análisis
-    ├── cadenza.db                  # Base de datos local (ignorado en git)
-    ├── requirements.txt            # Dependencias del proyecto
-    ├── .gitignore                  
-    └── README.md
+    DELETE /api/v1/obras/{id}: Elimina de forma segura los metadatos de la base de datos y los archivos físicos del servidor para liberar espacio.
 
-Desarrollado por Álvaro Llamas Martín para el Proyecto Integrado de 2º DAM.
+🚧 En Desarrollo (Futuras Iteraciones)
+
+    ⏳ Interfaz de sincronización de luces (Hardware IoT) en caso de que el dispositivo cliente disponga de ellas.
+
+    ⏳ Generación automática de partituras dinámicas en base a la transcripción de la obra procesada.
+
+📁 Arquitectura del Proyecto
+Plaintext
+
+CadenzaBackend/
+├── uploads/                    # Recepción de archivos temporales (Git Ignore)
+├── separated/                  # Pistas procesadas por la IA Demucs (Git Ignore)
+├── tests/                      # Suite de pruebas automatizadas (Pytest)
+├── app/                        # Código fuente del servidor
+│   ├── config.py               # Variables globales y de entorno
+│   ├── main.py                 # Core de FastAPI, Middlewares y CORS
+│   ├── auth.py                 # Lógica de seguridad JWT y Bcrypt
+│   ├── database/               # Modelos y motor SQLAlchemy
+│   ├── routers/                # Endpoints (tracks, auth, library)
+│   └── services/               # Lógica de negocio (Demucs, Librosa, Gemini)
+├── requirements.txt            # Dependencias de Python
+├── .gitignore                  
+└── README.md
+
+Desarrollado por Álvaro Llamas Martín - Proyecto Integrado de 2º DAM.
