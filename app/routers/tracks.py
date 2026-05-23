@@ -36,8 +36,12 @@ load_dotenv()
 # Semáforo que limita el número de procesos de Demucs simultáneos (configurado en app.config)
 semaforo_demucs = asyncio.Semaphore(MAX_PROCESOS)
 
-# Contador global de peticiones activas (esperando + procesando) y lock para modificarlo de forma segura
+# Contadores globales del estado de la cola de Demucs:
+#   tareas_activas    — peticiones que han llegado al servidor (esperando + procesando)
+#   tareas_en_proceso — peticiones que han adquirido el semáforo y están ejecutando Demucs
+tageas_en_proceso_lock = asyncio.Lock()
 tareas_activas = 0
+tareas_en_proceso = 0
 lock_contador = asyncio.Lock()
 
 # Formatos de audio que el servidor acepta para su procesamiento
@@ -111,12 +115,21 @@ async def separar_pistas(
         exito_separacion = False
         metadata = {"bpm": 0, "duration": 0} 
 
-        # El semáforo garantiza que solo MAX_PROCESOS instancias de Demucs corren a la vez
+        # El semáforo garantiza que solo MAX_PROCESOS instancias de Demucs corren a la vez.
+        # Al adquirirlo, incrementamos tareas_en_proceso para que /cola-estado pueda
+        # distinguir las peticiones que están procesando de las que aún esperan en cola.
         async with semaforo_demucs:
-            exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
-            if exito_separacion:
-                # Analizar BPM y duración solo si la separación fue exitosa
-                metadata = await asyncio.to_thread(analizar_track, file_location)
+            global tareas_en_proceso
+            async with lock_contador:
+                tareas_en_proceso += 1
+            try:
+                exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
+                if exito_separacion:
+                    # Analizar BPM y duración solo si la separación fue exitosa
+                    metadata = await asyncio.to_thread(analizar_track, file_location)
+            finally:
+                async with lock_contador:
+                    tareas_en_proceso = max(0, tareas_en_proceso - 1)
 
         if not exito_separacion:
             # Limpiar el archivo subido si Demucs falla para no dejar basura en disco
@@ -185,11 +198,12 @@ async def obtener_estado_cola():
     Returns:
         dict: Número de tareas activas, tareas esperando en cola y flag de saturación.
     """
-    global tareas_activas
-    # Las tareas esperando son las que superan el límite de procesamiento simultáneo
-    tareas_esperando = max(0, tareas_activas - MAX_PROCESOS)
+    global tareas_activas, tareas_en_proceso
+    # tareas_esperando = peticiones llegadas al servidor que aún no han entrado al semáforo
+    tareas_esperando = max(0, tareas_activas - tareas_en_proceso)
     return {
         "tareas_activas": tareas_activas,
+        "tareas_en_proceso": tareas_en_proceso,
         "tareas_esperando": tareas_esperando,
         "saturado": tareas_esperando >= 1
     }
