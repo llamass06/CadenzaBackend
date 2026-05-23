@@ -36,6 +36,10 @@ load_dotenv()
 # Semáforo que limita el número de procesos de Demucs simultáneos (configurado en app.config)
 semaforo_demucs = asyncio.Semaphore(MAX_PROCESOS)
 
+# Contador global de peticiones activas (esperando + procesando) y lock para modificarlo de forma segura
+tareas_activas = 0
+lock_contador = asyncio.Lock()
+
 # Formatos de audio que el servidor acepta para su procesamiento
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a"}
 
@@ -81,83 +85,115 @@ async def separar_pistas(
             - 400 Si el formato del archivo no está entre los permitidos.
             - 500 Si Demucs falla durante la separación de pistas.
     """
-    # Validar que la extensión sea de un formato de audio admitido
-    _, file_extension = os.path.splitext(file.filename)
-    if file_extension.lower() not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Formato no válido. Aceptados: {ALLOWED_EXTENSIONS}"
-        )
-    
-    # Construir un nombre de archivo único para evitar sobreescribir obras de otros usuarios
-    safe_filename = f"user_{current_user.id}_{file.filename.replace(' ', '_')}"
-    file_location = os.path.join(UPLOAD_DIR, safe_filename) 
-    
-    # Guardar el archivo recibido en el disco
-    with open(file_location, "wb+") as file_object:
-        shutil.copyfileobj(file.file, file_object)
-        
-    exito_separacion = False
-    metadata = {"bpm": 0, "duration": 0} 
+    global tareas_activas
 
-    # El semáforo garantiza que solo MAX_PROCESOS instancias de Demucs corren a la vez
-    async with semaforo_demucs:
-        exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
-        if exito_separacion:
-            # Analizar BPM y duración solo si la separación fue exitosa
-            metadata = await asyncio.to_thread(analizar_track, file_location)
+    # Registrar la llegada de la petición en el contador global
+    async with lock_contador:
+        tareas_activas += 1
 
-    if not exito_separacion:
-        # Limpiar el archivo subido si Demucs falla para no dejar basura en disco
-        if os.path.exists(file_location):
-            os.remove(file_location)
-        raise HTTPException(status_code=500, detail="Error en el procesamiento de audio.")
-    
-    # Construir rutas relativas para almacenarlas en la BBDD
-    song_folder = os.path.splitext(safe_filename)[0]
-    relative_path = f"{MODEL_NAME}/{song_folder}"
-    db_path_backing = f"{relative_path}/no_piano.mp3"
-    
-    # Demucs genera dos archivos (piano.mp3 y no_piano.mp3); eliminamos piano.mp3 para ahorrar espacio
-    path_piano_to_delete = os.path.join(OUTPUT_DIR, relative_path, "piano.mp3")
-    if os.path.exists(path_piano_to_delete):
-        os.remove(path_piano_to_delete)
-    
-    # Consultar a Gemini el contexto musicológico de la obra mientras se guarda en BBDD
-    texto_contexto = "Información no disponible."
     try:
-        query_ia = f"{title} de {artist}" if artist else title
-        res_ia = await generar_contexto_obra(ObraRequest(nombre_obra=query_ia))
-        texto_contexto = res_ia["contexto"]
-    except Exception as e:
-        # Si Gemini falla, no bloqueamos el proceso; simplemente se guarda sin contexto
-        print(f"Error generando contexto IA: {e}")
+        # Validar que la extensión sea de un formato de audio admitido
+        _, file_extension = os.path.splitext(file.filename)
+        if file_extension.lower() not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Formato no válido. Aceptados: {ALLOWED_EXTENSIONS}"
+            )
+        
+        # Construir un nombre de archivo único para evitar sobreescribir obras de otros usuarios
+        safe_filename = f"user_{current_user.id}_{file.filename.replace(' ', '_')}"
+        file_location = os.path.join(UPLOAD_DIR, safe_filename) 
+        
+        # Guardar el archivo recibido en el disco
+        with open(file_location, "wb+") as file_object:
+            shutil.copyfileobj(file.file, file_object)
+            
+        exito_separacion = False
+        metadata = {"bpm": 0, "duration": 0} 
 
-    # Crear el registro de la canción en la base de datos
-    nueva_cancion = models.Song(
-        title=title,               
-        artist=artist,             
-        path_piano=None,            # El piano.mp3 se elimina, así que no se referencia
-        path_backing=db_path_backing,
-        bpm=metadata["bpm"],
-        duration=metadata["duration"],
-        contexto=texto_contexto,
-        owner_id=current_user.id  
-    )
-    db.add(nueva_cancion)
-    db.commit()
-    db.refresh(nueva_cancion)
+        # El semáforo garantiza que solo MAX_PROCESOS instancias de Demucs corren a la vez
+        async with semaforo_demucs:
+            exito_separacion = await asyncio.to_thread(ejecutar_demucs, file_location)
+            if exito_separacion:
+                # Analizar BPM y duración solo si la separación fue exitosa
+                metadata = await asyncio.to_thread(analizar_track, file_location)
+
+        if not exito_separacion:
+            # Limpiar el archivo subido si Demucs falla para no dejar basura en disco
+            if os.path.exists(file_location):
+                os.remove(file_location)
+            raise HTTPException(status_code=500, detail="Error en el procesamiento de audio.")
+        
+        # Construir rutas relativas para almacenarlas en la BBDD
+        song_folder = os.path.splitext(safe_filename)[0]
+        relative_path = f"{MODEL_NAME}/{song_folder}"
+        db_path_backing = f"{relative_path}/no_piano.mp3"
+        
+        # Demucs genera dos archivos (piano.mp3 y no_piano.mp3); eliminamos piano.mp3 para ahorrar espacio
+        path_piano_to_delete = os.path.join(OUTPUT_DIR, relative_path, "piano.mp3")
+        if os.path.exists(path_piano_to_delete):
+            os.remove(path_piano_to_delete)
+        
+        # Consultar a Gemini el contexto musicológico de la obra mientras se guarda en BBDD
+        texto_contexto = "Información no disponible."
+        try:
+            query_ia = f"{title} de {artist}" if artist else title
+            res_ia = await generar_contexto_obra(ObraRequest(nombre_obra=query_ia))
+            texto_contexto = res_ia["contexto"]
+        except Exception as e:
+            # Si Gemini falla, no bloqueamos el proceso; simplemente se guarda sin contexto
+            print(f"Error generando contexto IA: {e}")
+
+        # Crear el registro de la canción en la base de datos
+        nueva_cancion = models.Song(
+            title=title,               
+            artist=artist,             
+            path_piano=None,            # El piano.mp3 se elimina, así que no se referencia
+            path_backing=db_path_backing,
+            bpm=metadata["bpm"],
+            duration=metadata["duration"],
+            contexto=texto_contexto,
+            owner_id=current_user.id  
+        )
+        db.add(nueva_cancion)
+        db.commit()
+        db.refresh(nueva_cancion)
+        
+        return {
+            "status" : "success",
+            "song_id": nueva_cancion.id,
+            "title": title,
+            "artist": artist,
+            "backing_url" : f"{base_url}/files/{db_path_backing}",
+            "bpm": metadata["bpm"],
+            "contexto": texto_contexto
+        }
+
+    finally:
+        # Decrementar siempre el contador, haya éxito o error
+        async with lock_contador:
+            tareas_activas = max(0, tareas_activas - 1)
+
+@router.get("/cola-estado")
+async def obtener_estado_cola():
+    """
+    Devuelve el estado actual de la cola de procesamiento de Demucs.
     
+    Permite al frontend hacer polling para detectar saturación del servidor
+    y mostrar un aviso informativo al usuario mientras espera su turno.
     
+    Returns:
+        dict: Número de tareas activas, tareas esperando en cola y flag de saturación.
+    """
+    global tareas_activas
+    # Las tareas esperando son las que superan el límite de procesamiento simultáneo
+    tareas_esperando = max(0, tareas_activas - MAX_PROCESOS)
     return {
-        "status" : "success",
-        "song_id": nueva_cancion.id,
-        "title": title,
-        "artist": artist,
-        "backing_url" : f"{base_url}/files/{db_path_backing}",
-        "bpm": metadata["bpm"],
-        "contexto": texto_contexto
+        "tareas_activas": tareas_activas,
+        "tareas_esperando": tareas_esperando,
+        "saturado": tareas_esperando >= 1
     }
+
 
 @router.get("/mis-obras")
 async def obtener_mis_obras(
