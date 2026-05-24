@@ -11,6 +11,10 @@ de que llegue cualquier petición.
 """
 
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno globalmente
+load_dotenv()
 
 # --- DIRECTORIOS DE ARCHIVOS ---
 
@@ -37,6 +41,12 @@ MODEL_NAME = "htdemucs_6s"
 # Se mantiene en 1 para evitar desbordamiento de RAM en el servidor de despliegue (4 GB).
 # Aumentar este valor solo si el servidor dispone de más memoria y núcleos disponibles.
 MAX_PROCESOS = 1
+
+# --- REGLAS DE NEGOCIO ---
+MAX_OBRAS = 3
+
+# --- RUTAS Y URLs ---
+BASE_URL = os.getenv("BASE_URL")
 
 # --- INICIALIZACIÓN DE DIRECTORIOS ---
 

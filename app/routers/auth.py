@@ -60,8 +60,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     smtp_server = "smtp.gmail.com"  
     smtp_port = 587  # Los demas no funkan en produccion
     
-    base_url = os.getenv("BASE_URL")
-    link_verificacion = f"{base_url}/api/auth/verify?token={token_verificacion}"
+    from app.config import BASE_URL
+    link_verificacion = f"{BASE_URL}/api/auth/verify?token={token_verificacion}"
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
