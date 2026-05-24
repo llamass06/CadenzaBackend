@@ -52,6 +52,9 @@ ALLOWED_EXTENSIONS = {".mp3", ".wav", ".flac", ".m4a"}
 # Definimos la URL base del servidor para construir enlaces estáticos
 base_url = os.getenv("BASE_URL")
 
+# Límite máximo de obras por usuario (debe coincidir con MAX_OBRAS del frontend)
+MAX_OBRAS = 3
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Almacén en memoria de tareas de separación.
 # Clave: task_id (str UUID)
@@ -152,6 +155,24 @@ async def procesar_audio_background(
         # usar la dependencia Depends(get_db).
         db: Session = SessionLocal()
         try:
+            # ── VALIDACIÓN DEFINITIVA DEL LÍMITE ──────────────────────────────
+            # Comprobamos el número de obras JUSTO ANTES de insertar la nueva.
+            # Esta es la barrera real contra condiciones de carrera (race conditions):
+            # si dos peticiones concurrentes superaron la pre-validación del endpoint,
+            # solo la primera en llegar aquí podrá guardar; la segunda será rechazada.
+            obras_actuales = db.query(models.Song).filter(
+                models.Song.owner_id == user_id
+            ).count()
+            if obras_actuales >= MAX_OBRAS:
+                tareas_separacion[task_id] = {
+                    "status": "error",
+                    "error": f"Límite de {MAX_OBRAS} obras alcanzado. Elimina una obra antes de subir otra."
+                }
+                # Limpiar los archivos generados por Demucs que ya no se necesitan
+                output_folder = os.path.join(OUTPUT_DIR, relative_path)
+                if os.path.exists(output_folder):
+                    shutil.rmtree(output_folder)
+                return
             nueva_cancion = models.Song(
                 title=title,
                 artist=artist,
@@ -239,6 +260,19 @@ async def separar_pistas(
         raise HTTPException(
             status_code=400,
             detail=f"Formato no válido. Aceptados: {ALLOWED_EXTENSIONS}"
+        )
+
+    # ── PRE-VALIDACIÓN DEL LÍMITE (respuesta rápida) ──────────────────────
+    # Rechaza inmediatamente si el usuario ya tiene MAX_OBRAS obras.
+    # Esto cubre el caso normal (una sola pestaña abierta) sin gastar recursos.
+    # La validación definitiva contra race conditions está en procesar_audio_background.
+    obras_actuales = db.query(models.Song).filter(
+        models.Song.owner_id == current_user.id
+    ).count()
+    if obras_actuales >= MAX_OBRAS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Límite de {MAX_OBRAS} obras alcanzado. Elimina una obra antes de subir otra."
         )
 
     # Registrar la llegada de la petición en el contador global
