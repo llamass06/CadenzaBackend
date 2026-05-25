@@ -32,11 +32,11 @@ def limpiar_archivos(rutas: list[str]):
         elif os.path.isdir(ruta):
             shutil.rmtree(ruta)
 
-async def ejecutar_pipeline_audio(file_location: str) -> tuple[bool, dict]:
+async def ejecutar_pipeline_audio(task_id: str, file_location: str) -> tuple[bool, dict]:
     """Ejecuta Demucs y analiza el track, controlando la concurrencia."""
     metadata = {"bpm": 0, "duration": 0}
     async with task_manager.semaforo:
-        await task_manager.iniciar_proceso()
+        await task_manager.iniciar_proceso(task_id)
         try:
             exito = await asyncio.to_thread(ejecutar_demucs, file_location)
             if exito:
@@ -54,7 +54,7 @@ async def procesar_audio_background(
     user_id: int,
 ):
     try:
-        exito_separacion, metadata = await ejecutar_pipeline_audio(file_location)
+        exito_separacion, metadata = await ejecutar_pipeline_audio(task_id, file_location)
 
         if not exito_separacion:
             limpiar_archivos([file_location])
