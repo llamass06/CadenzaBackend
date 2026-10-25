@@ -67,21 +67,26 @@ Pasos de arranque:
 Bash
 
 1. Clonar el repositorio
-    git clone https://github.com/llamass06/CadenzaBackend.git
-    cd CadenzaBackend
+
+       git clone https://github.com/llamass06/CadenzaBackend.git
+       cd CadenzaBackend
 
 3. Crear y activar el entorno virtual (Windows)
-    python -m venv venv
-    .\venv\Scripts\Activate
 
-4. Instalar dependencias estándar
-    pip install -r requirements.txt
+       python -m venv venv
+        .\venv\Scripts\Activate
 
-5. Instalación de Demucs desde la fuente oficial
-    pip install -U git+https://github.com/facebookresearch/demucs#egg=demucs
+5. Instalar dependencias estándar
 
-6. Arrancar el servidor de desarrollo
-    uvicorn app.main:app --reload
+       pip install -r requirements.txt
+
+7. Instalación de Demucs desde la fuente oficial
+
+       pip install -U git+https://github.com/facebookresearch/demucs#egg=demucs
+
+9. Arrancar el servidor de desarrollo
+
+       uvicorn app.main:app --reload
 
 ## 🔌 Endpoints Principales (API v1)
 
